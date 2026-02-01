@@ -1,0 +1,117 @@
+name: Daily Job Scanner
+
+on:
+  schedule:
+    # Run daily at 8:00 UTC (5:00 BRT)
+    - cron: '0 8 * * *'
+  workflow_dispatch: # Allow manual trigger
+    inputs:
+      dry_run:
+        description: 'Run in dry-run mode (no emails sent)'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  scan-jobs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build with Maven
+        working-directory: job-scanner-spring
+        run: ./mvnw package -DskipTests -B
+
+      - name: Create data directory
+        run: mkdir -p job-scanner-spring/data
+
+      - name: Download previous database
+        uses: actions/download-artifact@v4
+        with:
+          name: jobs-database
+          path: job-scanner-spring/data
+        continue-on-error: true # First run won't have artifact
+
+      - name: Run job scanner
+        working-directory: job-scanner-spring
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          SPRING_AI_GEMINI_API_KEY: ${{ secrets.SPRING_AI_GEMINI_API_KEY }}
+          DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
+          SQLITE_PATH: ./data/jobs.db
+        run: |
+          java -jar target/*.jar --spring.profiles.active=ai | tee output.log
+
+      - name: Generate Job Summary
+        if: always()
+        run: |
+          echo "### 🚀 Job Scanner Results" >> $GITHUB_STEP_SUMMARY
+          if grep -q "Qualified jobs" output.log; then
+            QUALIFIED=$(grep "Qualified jobs" output.log | awk '{print $NF}')
+            TOTAL=$(grep "Total jobs fetched" output.log | awk '{print $NF}')
+            echo "- **Total Scanned:** $TOTAL" >> $GITHUB_STEP_SUMMARY
+            echo "- **Qualified:** $QUALIFIED" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "#### Top Matches found:" >> $GITHUB_STEP_SUMMARY
+            grep "\[" output.log | grep "@" | head -n 10 | sed 's/^.*INFO - //' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "❌ Scanner failed to produce output summary." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Upload database artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: jobs-database
+          path: job-scanner-spring/data/jobs.db
+          retention-days: 90
+          if-no-files-found: warn
+
+      - name: Commit database to repo (backup)
+        if: success()
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add job-scanner-spring/data/jobs.db || true
+          git diff --quiet --cached || git commit -m "Update sent jobs database [skip ci]"
+          git push || true
+
+  # Optional: Build and push Docker image
+  build-docker:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.build_docker == 'true'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./job-scanner-spring
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/job-scanner:latest
+            ghcr.io/${{ github.repository_owner }}/job-scanner:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
