@@ -1,0 +1,61 @@
+version: "3.8"
+
+services:
+  job-scanner:
+    build: .
+    container_name: job-scanner
+    environment:
+      - EMAIL_USER=${EMAIL_USER}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      - EMAIL_TO=${EMAIL_TO}
+      - DRY_RUN=${DRY_RUN:-false}
+      - SQLITE_PATH=/app/data/jobs.db
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8081:8081"
+    restart: "no"
+    networks:
+      - scanner-network
+
+  # Optional: Prometheus for metrics collection
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.enable-lifecycle"
+    networks:
+      - scanner-network
+    profiles:
+      - monitoring
+
+  # Optional: Grafana for dashboards
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana-data:/var/lib/grafana
+    networks:
+      - scanner-network
+    profiles:
+      - monitoring
+
+networks:
+  scanner-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:

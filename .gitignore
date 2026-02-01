@@ -1,0 +1,55 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+.factorypath
+*.swp
+*.swo
+*~
+.vscode/
+
+# Compiled files
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+.env.local
+
+# Data files (keep structure, ignore content)
+data/*.db
+!data/.gitkeep
+
+# Docker
+docker-compose.override.yml
+
+# Prometheus/Grafana data
+prometheus-data/
+grafana-data/
