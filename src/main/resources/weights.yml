@@ -1,0 +1,68 @@
+# Job Scanner - Scoring Weights Configuration
+# These weights determine the applicability score (0-100) for each job
+
+scoring:
+  # Minimum score required to qualify for email (0-100)
+  threshold: 70
+
+  # Weight for having "Java" in the job title
+  java-in-title: 20
+
+  # Weight for senior/lead/staff/principal level positions
+  senior-level: 10
+
+  # Weight for explicitly remote positions
+  remote-explicit: 15
+
+  # Weight for not having US-only restrictions (baseline expectation)
+  no-us-only: 20
+
+  # Weight for contract/B2B positions
+  contract-b2b: 15
+
+  # Weight for LATAM/Brazil specific positions
+  latam-brazil-boost: 10
+
+  # Weight for compatible tech stack (Spring, Kafka, AWS, K8s, etc.)
+  tech-stack: 20
+
+  # Tech stack terms and their individual weights
+  tech-stack-terms:
+    spring: 5
+    spring-boot: 5
+    springboot: 5
+    kafka: 3
+    aws: 3
+    kubernetes: 3
+    k8s: 3
+    docker: 2
+    microservices: 2
+    postgresql: 2
+    postgres: 2
+    mysql: 2
+    mongodb: 2
+    redis: 2
+    elasticsearch: 2
+    rabbitmq: 2
+    grpc: 2
+    rest: 1
+    api: 1
+    ci/cd: 2
+    jenkins: 1
+    terraform: 2
+    git: 1
+    agile: 1
+    scrum: 1
+    backend: 2
+    fullstack: 2
+    'full stack': 2
+
+  # Seniority level terms
+  seniority-terms:
+    - senior
+    - lead
+    - staff
+    - principal
+    - architect
+    - sr.
+    - sr
