@@ -79,9 +79,26 @@ scanner:
   email:
     to: ${EMAIL_TO:}
 
-# Spring AI Configuration (optional - requires ai-enabled profile)
-spring.ai:
-  enabled: false
+# Spring AI Configuration
+spring:
+  ai:
+    google:
+      chat:
+        options:
+          model: gemini-1.5-flash
+  cloud:
+    google:
+      credentials:
+        api-key: ${GEMINI_API_KEY:}
+
+# Application Custom Configuration
+app:
+  ai:
+    enabled: ${AI_ENABLED:false}
+
+# Scanner Configuration
+scanner:
+  metrics-wait-seconds: 0
 
 # Logging Configuration
 logging:
