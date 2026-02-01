@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Scanner Daily Digest</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #4a90d9;
+            padding-bottom: 20px;
+            margin-bottom: 25px;
+        }
+        .header h1 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        .header .date {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+        .stat {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4a90d9;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+        }
+        .job-card {
+            border: 1px solid #e1e4e8;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: box-shadow 0.2s;
+        }
+        .job-card:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .job-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        .job-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2c3e50;
+            margin: 0;
+            text-decoration: none;
+        }
+        .job-title:hover {
+            color: #4a90d9;
+        }
+        .job-score {
+            background-color: #27ae60;
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .job-score.high {
+            background-color: #27ae60;
+        }
+        .job-score.medium {
+            background-color: #f39c12;
+        }
+        .job-meta {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        .job-meta span {
+            margin-right: 15px;
+        }
+        .job-badges {
+            margin-top: 10px;
+        }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-right: 5px;
+        }
+        .badge-remote {
+            background-color: #e8f5e9;
+            color: #27ae60;
+        }
+        .badge-contract {
+            background-color: #e3f2fd;
+            color: #2196f3;
+        }
+        .badge-source {
+            background-color: #f3e5f5;
+            color: #9c27b0;
+        }
+        .apply-btn {
+            display: inline-block;
+            background-color: #4a90d9;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+        .apply-btn:hover {
+            background-color: #357abd;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e1e4e8;
+            color: #7f8c8d;
+            font-size: 12px;
+        }
+        .footer a {
+            color: #4a90d9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Job Scanner Daily Digest</h1>
+            <div class="date" th:text="${date}">January 1, 2024</div>
+        </div>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-value" th:text="${jobCount}">0</div>
+                <div class="stat-label">New Jobs</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" th:text="${remoteCount}">0</div>
+                <div class="stat-label">Remote</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" th:text="${contractCount}">0</div>
+                <div class="stat-label">Contract/B2B</div>
+            </div>
+            <div class="stat">
+                <div class="stat-value" th:text="${avgScore}">0</div>
+                <div class="stat-label">Avg Score</div>
+            </div>
+        </div>
+
+        <div th:each="job : ${jobs}" class="job-card">
+            <div class="job-header">
+                <a th:href="${job.url}" th:text="${job.title}" class="job-title">Job Title</a>
+                <span class="job-score"
+                      th:text="${job.score}"
+                      th:classappend="${job.score >= 85 ? 'high' : (job.score >= 75 ? 'medium' : '')}">85</span>
+            </div>
+
+            <div class="job-meta">
+                <span th:text="${job.company}">Company Name</span>
+                <span th:if="${job.location != null and !job.location.isEmpty()}" th:text="'📍 ' + ${job.location}">Location</span>
+            </div>
+
+            <div class="job-badges">
+                <span th:if="${job.remote}" class="badge badge-remote">Remote</span>
+                <span th:if="${job.contract}" class="badge badge-contract">Contract/B2B</span>
+                <span class="badge badge-source" th:text="${job.source}">Source</span>
+            </div>
+
+            <a th:href="${job.url}" class="apply-btn">View & Apply →</a>
+        </div>
+
+        <div class="footer">
+            <p>Generated by Job Scanner</p>
+            <p>This is an automated email. Jobs are filtered for Java Developer positions that are remote-friendly and open to international candidates.</p>
+        </div>
+    </div>
+</body>
+</html>
