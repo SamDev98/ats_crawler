@@ -1,0 +1,909 @@
+# Server Configuration
+server:
+  port: ${PORT:8081}
+
+spring:
+  application:
+    name: job-scanner
+
+  # SQLite Database Configuration
+  datasource:
+    url: jdbc:sqlite:${SQLITE_PATH:./data/jobs.db}
+    driver-class-name: org.sqlite.JDBC
+    hikari:
+      maximum-pool-size: 1
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.community.dialect.SQLiteDialect
+
+  # Email Configuration (Gmail SMTP)
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${EMAIL_USER:}
+    password: ${EMAIL_PASSWORD:}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          connectiontimeout: 5000
+          timeout: 5000
+          writetimeout: 5000
+
+  # Thymeleaf Template Configuration
+  thymeleaf:
+    cache: false
+    mode: HTML
+    encoding: UTF-8
+
+  # Load additional config files
+  config:
+    import:
+      - classpath:rules.yml
+      - classpath:weights.yml
+
+# Actuator & Prometheus Metrics
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: always
+  metrics:
+    tags:
+      application: job-scanner
+    distribution:
+      maximum-expected-value:
+        '[http.client.requests]': 10s
+    enable:
+      # Disable detailed URI tagging for WebClient (too many unique URLs)
+      '[http.client.requests]': false
+  prometheus:
+    metrics:
+      export:
+        enabled: true
+
+# Scanner Configuration
+scanner:
+  dry-run: ${DRY_RUN:false}
+  metrics-wait-seconds: ${METRICS_WAIT_SECONDS:0}
+  email:
+    to: ${EMAIL_TO:}
+
+# Spring AI Configuration (optional - requires ai-enabled profile)
+spring.ai:
+  enabled: false
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    dev.jobscanner: INFO
+    org.springframework.web.reactive: WARN
+    org.hibernate: WARN
+  pattern:
+    console: '%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{36} - %msg%n'
+
+# ATS Sources Configuration
+# Focused on companies that hire LATAM/Brazil + Remote-first + Java/Backend
+sources:
+  lever:
+    # Big Tech & LATAM-friendly
+    - netflix
+    - spotify
+    - datadog
+    - cloudflare
+    - gitlab
+    - elastic
+    - confluent
+    - hashicorp
+    - temporal
+    - camunda
+    - cockroachlabs
+    - yugabyte
+    - timescale
+    - clickhouse
+    # Fintech (Java heavy)
+    - stripe
+    - plaid
+    - brex
+    - ramp
+    - marqeta
+    - moderntreasury
+    - column
+    - lithic
+    - treasury-prime
+    - increase
+    - moov
+    - stitch
+    - teller
+    - method
+    - argyle
+    - pinwheel
+    - atomic
+    - finix
+    - highnote
+    # Data/Infrastructure (Java/Scala)
+    - databricks
+    - snowflake
+    - fivetran
+    - airbyte
+    - dagster
+    - prefect
+    - astronomer
+    - dbt-labs
+    - monte-carlo
+    - atlan
+    - alation
+    - collibra
+    - immuta
+    - privacera
+    - stemma
+    - secoda
+    - castor
+    - select-star
+    # Observability (often Java)
+    - newrelic
+    - splunk
+    - sumologic
+    - grafana
+    - chronosphere
+    - coralogix
+    - logz-io
+    - cribl
+    - mezmo
+    - observe
+    - lightstep
+    - honeycomb
+    - axiom
+    # Developer Tools
+    - postman
+    - snyk
+    - sentry
+    - launchdarkly
+    - split
+    - optimizely
+    - statsig
+    - eppo
+    - growthbook
+    - flagsmith
+    - unleash
+    - harness
+    - armory
+    - codefresh
+    - circleci
+    - buildkite
+    - semaphore
+    - codecov
+    - sonarqube
+    - codacy
+    - deepsource
+    # Remote-first companies
+    - zapier
+    - automattic
+    - buffer
+    - doist
+    - toggl
+    - hotjar
+    - invision
+    - webflow
+    - miro
+    - figma
+    - notion
+    - coda
+    - airtable
+    - clickup
+    # LATAM & Brazilian Tech (Lever)
+    - pagseguro
+    - stone
+    - picpay
+    - neon
+    - ifood
+    - quintoandar
+    - loggi
+    - gympass
+    - ebanx
+    - pipefy
+    - hotmart
+    - wildlife
+    - sumup
+    - bitso
+    - dlocal
+    - dlocal-corp
+    - cavak
+    - lalamove
+    - in-drive
+    - 99app
+    - mercadobitcoin
+    - hashdex
+    - nomad
+    - avenue
+    - monday
+    - asana
+    - linear
+    - height
+    - shortcut
+    - productboard
+    - pendo
+    - amplitude
+    - mixpanel
+    - heap
+    - fullstory
+    - logrocket
+    # E-commerce/Marketplace (Java common)
+    - shopify
+    - bigcommerce
+    - salsify
+    - commercetools
+    - elasticpath
+    - spryker
+    - fabric
+    - chord
+    - violet
+    - nacelle
+    - ordergroove
+    - recharge
+    - bold
+    - yotpo
+    - stamped
+    - okendo
+    - junip
+    - loox
+    - judge-me
+    # Healthcare (often Java)
+    - veracyte
+    - tempus
+    - flatiron
+    - cityblock
+    - devoted
+    - clover
+    - oscar
+    - bright
+    - garner
+    - transcarent
+    - accolade
+    - included
+    - carrot
+    - maven
+    - kindbody
+    - progyny
+    - spring-health
+    - lyra
+    - headway
+    - alma
+    - cerebral
+    - talkiatry
+    - grow-therapy
+    - rula
+    - path
+
+  greenhouse:
+    # LATAM-friendly Big Tech
+    - twilio
+    - auth0
+    - okta
+    - datadog
+    - newrelic
+    - elastic
+    - mongodb
+    - cockroach-labs
+    - redis
+    - aiven
+    - timescale
+    - questdb
+    - influxdata
+    - victoriametrics
+    # Brazilian & LATAM companies
+    - nubank
+    - creditas
+    - loft
+    - quintoandar
+    - loggi
+    - nuvemshop
+    - vtex
+    - olist
+    - merama
+    - facily
+    - madeiramadeira
+    - enjoei
+    - magalu
+    - mercadolibre
+    - kavak
+    - bitso
+    - clip
+    - ualabee
+    - rappi
+    - cornershop
+    - notco
+    - betterfly
+    - fintual
+    - kushki
+    - pomelo
+    - ank
+    - uala
+    - brubank
+    - buenbit
+    - lemon
+    - ripio
+    - belo
+    - agrofy
+    - frubana
+    - ciandt
+    - zup-innovation
+    - localiza
+    - banco-bv
+    - xp-inc
+    - boticario
+    - dlocal-1
+    - dlocal-2
+    # European Remote-friendly
+    - revolut
+    - wise
+    - n26
+    - monzo
+    - starling
+    - klarna
+    - adyen
+    - mollie
+    - sumup
+    - checkout
+    - truelayer
+    - tink
+    - plaid
+    - railsr
+    - solarisbank
+    - mambu
+    - thought-machine
+    - 10x-banking
+    - temenos
+    - finastra
+    - backbase
+    - contentful
+    - storyblok
+    - sanity
+    - strapi
+    - directus
+    - hygraph
+    - builder-io
+    - uniform
+    - ninetailed
+    - dynamic-yield
+    - bloomreach
+    - algolia
+    - typesense
+    - meilisearch
+    - elasticsearch
+    - opensearch
+    # Infra/Cloud (Java heavy)
+    - hashicorp
+    - pulumi
+    - spacelift
+    - env0
+    - scalr
+    - terraform-cloud
+    - atlantis
+    - crossplane
+    - upbound
+    - komodor
+    - cast-ai
+    - spot-io
+    - granulate
+    - densify
+    - kubecost
+    - vantage
+    - infracost
+    - cloudhealth
+    - cloudability
+    - apptio
+    - flexera
+    # API/Integration (Java common)
+    - kong
+    - tyk
+    - gravitee
+    - apigee
+    - mulesoft
+    - boomi
+    - workato
+    - tray-io
+    - make
+    - n8n
+    - pipedream
+    - hookdeck
+    - svix
+    - inngest
+    - trigger-dev
+    - temporal
+    - camunda
+    - zeebe
+    - activiti
+    # Security (Java common)
+    - snyk
+    - veracode
+    - checkmarx
+    - sonarqube
+    - mend
+    - aqua
+    - palo-alto
+    - crowdstrike
+    - sentinelone
+    - tanium
+    - rapid7
+    - tenable
+    - qualys
+    - lacework
+    - orca
+    - wiz
+    - ermetic
+    - lightspin
+    - cyscale
+    - vanta
+    - drata
+    - secureframe
+    - laika
+    - sprinto
+    - scrut
+    - tugboat
+    - anecdotes
+    - hyperproof
+    - auditboard
+
+  ashby:
+    # Remote-first EOR/PEO (hire globally)
+    - remote
+    - deel
+    - oyster
+    - velocity-global
+    - papaya-global
+    - pilot
+    - plane
+    - multiplier
+    - atlas
+    - globalization-partners
+    - omnipresent
+    - safeguard-global
+    - boundless
+    - playroll
+    - lano
+    - skuad
+    - letsdeel
+    - remofirst
+    - horizons
+    - foxhire
+    - worksuite
+    - teemyco
+    - remote-first
+    # Modern SaaS (often remote)
+    - linear
+    - mercury
+    - ramp
+    - retool
+    - webflow
+    - loom
+    - notion
+    - coda
+    - craft
+    - slite
+    - tettra
+    - guru
+    - trainual
+    - lessonly
+    - learnupon
+    - docebo
+    - cornerstone
+    - workramp
+    - lattice
+    - culture-amp
+    - fifteen-five
+    - betterworks
+    - reflektive
+    - small-improvements
+    - peakon
+    - glint
+    - qualtrics
+    - medallia
+    - delighted
+    - nicereply
+    - typeform
+    - survicate
+    - hotjar
+    - fullstory
+    - heap
+    - amplitude
+    - mixpanel
+    - segment
+    - rudderstack
+    - hightouch
+    - census
+    # HR Tech
+    - rippling
+    - justworks
+    - gusto
+    - zenefits
+    - namely
+    - bamboohr
+    - hibob
+    - personio
+    - factorial
+    - kenjo
+    - charlie
+    - breathe
+    - sage
+    - workday
+    - successfactors
+    - oracle-hcm
+    - ceridian
+    - adp
+    - paychex
+    - paylocity
+    - paycom
+    - paycor
+
+  workable:
+    # LATAM Fintechs
+    - dlocal
+    - ebanx
+    - nuvei
+    - payu
+    - mercadopago
+    - pagseguro
+    - stone
+    - cielo
+    - getnet
+    - safrapay
+    - sumup
+    - zettle
+    - izettle
+    - poynt
+    - clover
+    - toast
+    - lightspeed
+    - shopkeep
+    - vend
+    - square
+    - stripe
+    - adyen
+    - checkout
+    - mollie
+    - klarna
+    - affirm
+    - afterpay
+    - sezzle
+    - splitit
+    - zip
+    - clearpay
+    - laybuy
+    - openpay
+    - humm
+    - latitude
+    - flexi
+    # European Tech
+    - contentful
+    - storyblok
+    - sanity
+    - prismic
+    - datocms
+    - kontent
+    - magnolia
+    - coremedia
+    - bloomreach
+    - sitecore
+    - episerver
+    - umbraco
+    - kentico
+    - acquia
+    - pantheon
+    - wpengine
+    - kinsta
+    - cloudways
+    - servebolt
+    - flywheel
+    - pagely
+    - pressable
+    - convesio
+    - flavor
+    - flavor-studios
+    # Delivery/Logistics (Java common)
+    - rappi
+    - ifood
+    - uber-eats
+    - doordash
+    - deliveroo
+    - glovo
+    - delivery-hero
+    - just-eat
+    - grubhub
+    - postmates
+    - instacart
+    - gopuff
+    - getir
+    - gorillas
+    - flink
+    - jokr
+    - buyk
+    - jiffy
+    - dija
+    - weezy
+    - zapp
+    - fancy
+    - cajoo
+    - frichti
+    - rohlik
+    - picnic
+    - oda
+    - mathem
+    - kolonial
+    - nemlig
+    - motatos
+    - matsmart
+
+  smartrecruiters:
+    # Large enterprises (Java heavy)
+    - visa
+    - mastercard
+    - paypal
+    - fiserv
+    - fis
+    - aci
+    - worldpay
+    - global-payments
+    - tsys
+    - elavon
+    - first-data
+    - heartland
+    - nmi
+    - shift4
+    - paysafe
+    - skrill
+    - neteller
+    - payoneer
+    - remitly
+    - wise
+    - xoom
+    - ria
+    - western-union
+    - moneygram
+    - transfergo
+    - currencycloud
+    - xe
+    - ofx
+    - world-first
+    # Banks & Financial
+    - jpmorgan
+    - goldman
+    - morgan-stanley
+    - citi
+    - bofa
+    - wells-fargo
+    - capital-one
+    - discover
+    - american-express
+    - synchrony
+    - ally
+    - marcus
+    - sofi
+    - chime
+    - current
+    - varo
+    - dave
+    - empower
+    - brigit
+    - earnin
+    - cleo
+    - albert
+    - digit
+    - qapital
+    - acorns
+    - stash
+    - betterment
+    - wealthfront
+    - ellevest
+    - titan
+    - public
+    - webull
+    - robinhood
+    - schwab
+    - fidelity
+    - vanguard
+    - blackrock
+    - state-street
+    # Trading/HFT (Java dominant)
+    - citadel
+    - two-sigma
+    - de-shaw
+    - renaissance
+    - jane-street
+    - jump-trading
+    - hudson-river
+    - tower-research
+    - virtu
+    - optiver
+    - imc
+    - akuna
+    - belvedere
+    - drw
+    - peak6
+    - wolverine
+    - susquehanna
+    - five-rings
+    - headlands
+    - xr-trading
+    - quantlab
+    - aqr
+    - point72
+    - balyasny
+    - millennium
+    - schonfeld
+    - bluecrest
+    - brevan-howard
+    - capula
+    - winton
+    - man-ahl
+    - gresham
+
+  recruitee:
+    # Product/Growth Tools
+    - hotjar
+    - fullstory
+    - heap
+    - mixpanel
+    - amplitude
+    - pendo
+    - gainsight
+    - totango
+    - churnzero
+    - vitally
+    - catalyst
+    - planhat
+    - custify
+    - clientsuccess
+    - natero
+    - strikedeck
+    - brightback
+    - uservoice
+    - canny
+    - productboard
+    - aha
+    - airfocus
+    - prodpad
+    - roadmunk
+    - craft
+    - miro
+    - figjam
+    - whimsical
+    - lucid
+    - mural
+    - conceptboard
+    - stormboard
+    - moqups
+    - balsamiq
+    - axure
+    - sketch
+    - figma
+    - invision
+    - zeplin
+    - abstract
+    - lingo
+    - frontify
+    - bynder
+    - brandfolder
+    - canto
+    - widen
+    - cloudinary
+    - imgix
+    - fastly
+    - akamai
+    - cloudflare
+    - bunny
+    - keycdn
+    - stackpath
+    - limelight
+    - edgecast
+    - imperva
+
+  teamtailor:
+    # European fintechs
+    - klarna
+    - revolut
+    - wise
+    - n26
+    - monzo
+    - starling
+    - bunq
+    - lunar
+    - vivid
+    - tomorrow
+    - nuri
+    - bitwala
+    - solarisbank
+    - mambu
+    - thought-machine
+    - railsr
+    - truelayer
+    - tink
+    - plaid
+    - saltedge
+    - nordigen
+    - finicity
+    - yodlee
+    - mx
+    - akoya
+    - finverse
+    - belvo
+    - pluggy
+    - plata
+    - finerio
+    # Mobility (often Java backend)
+    - bolt
+    - freenow
+    - cabify
+    - didi
+    - grab
+    - gojek
+    - ola
+    - pathao
+    - careem
+    - yandex
+    - indriver
+    - maxim
+    - voi
+    - tier
+    - lime
+    - bird
+    - spin
+    - dott
+    - helbiz
+    - superpedestrian
+    - wheels
+    - link
+    - beam
+    - neuron
+    - wind
+    - circ
+    - jump
+    - skip
+    - scoot
+    - revel
+    - ather
+    - niu
+    - gogoro
+    - kymco
+    - vmoto
+    - yadea
+    - segway
+    - mi
+    - ninebot
+    # Nordic/Baltic tech
+    - spotify
+    - klarna
+    - izettle
+    - trustly
+    - bambora
+    - nets
+    - vipps
+    - swish
+    - mobilepay
+    - pivo
+    - siirto
+    - paytrail
+    - checkout-finland
+    - svea
+    - collector
+    - walley
+    - anyfin
+    - northmill
+    - lendo
+    - zmarta
+    - advisa
+    - sambla
+    - freedom-finance
+    - instabank
+    - monobank
