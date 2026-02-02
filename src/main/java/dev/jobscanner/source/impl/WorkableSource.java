@@ -30,6 +30,10 @@ public class WorkableSource extends AbstractJobSource {
         return "Workable";
     }
 
+    protected String getApiUrl(String company) {
+        return String.format(API_URL_TEMPLATE, company);
+    }
+
     @Override
     protected List<String> getCompanies() {
         return sourcesConfig.getWorkable();
@@ -37,7 +41,7 @@ public class WorkableSource extends AbstractJobSource {
 
     @Override
     protected Mono<List<Job>> fetchCompanyJobs(String company) {
-        String url = String.format(API_URL_TEMPLATE, company);
+        String url = getApiUrl(company);
 
         return timedGet(url, WorkableResponse.class)
                 .map(response -> {
@@ -65,11 +69,6 @@ public class WorkableSource extends AbstractJobSource {
                 .build();
     }
 
-    private String formatCompanyName(String company) {
-        return company.replace("-", " ")
-                .substring(0, 1).toUpperCase() + company.replace("-", " ").substring(1);
-    }
-
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class WorkableResponse {
@@ -88,6 +87,7 @@ public class WorkableSource extends AbstractJobSource {
     @Data
     @JsonIgnoreProperties(ignoreUnknown = true)
     static class WorkableLocation {
+        @com.fasterxml.jackson.annotation.JsonProperty("location_str")
         private String locationStr;
         private String city;
         private String country;

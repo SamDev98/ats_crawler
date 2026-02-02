@@ -39,9 +39,13 @@ public class DeduplicationService {
                 .collect(Collectors.toSet());
 
         Set<String> existingUrls = sentJobRepository.findExistingUrls(urls);
+        if (existingUrls == null) {
+            existingUrls = Set.of();
+        }
 
+        Set<String> finalExistingUrls = existingUrls;
         List<Job> newJobs = jobs.stream()
-                .filter(job -> !existingUrls.contains(job.getUrl()))
+                .filter(job -> !finalExistingUrls.contains(job.getUrl()))
                 .toList();
 
         log.info("Deduplication: {} total jobs, {} already sent, {} new",
@@ -57,6 +61,10 @@ public class DeduplicationService {
      */
     @Transactional
     public void markAsSent(List<Job> jobs) {
+        if (jobs == null || jobs.isEmpty()) {
+            return;
+        }
+        
         LocalDateTime now = LocalDateTime.now();
 
         List<SentJob> sentJobs = jobs.stream()
@@ -71,8 +79,10 @@ public class DeduplicationService {
                         .build())
                 .toList();
 
-        sentJobRepository.saveAll(sentJobs);
-        log.info("Marked {} jobs as sent", sentJobs.size());
+        if (!sentJobs.isEmpty()) {
+            sentJobRepository.saveAll(sentJobs);
+            log.info("Marked {} jobs as sent", sentJobs.size());
+        }
     }
 
     /**

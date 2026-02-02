@@ -31,6 +31,10 @@ public class LeverSource extends AbstractJobSource {
         return "Lever";
     }
 
+    protected String getApiUrl(String company) {
+        return String.format(API_URL, company);
+    }
+
     @Override
     protected List<String> getCompanies() {
         return sourcesConfig.getLever();
@@ -38,7 +42,7 @@ public class LeverSource extends AbstractJobSource {
 
     @Override
     protected Mono<List<Job>> fetchCompanyJobs(String company) {
-        String url = String.format(API_URL, company);
+        String url = getApiUrl(company);
 
         return timedGet(url, LeverJob[].class)
                 .map(jobs -> java.util.Arrays.stream(jobs)
@@ -58,11 +62,6 @@ public class LeverSource extends AbstractJobSource {
                 .location(location)
                 .description(leverJob.getDescriptionPlain() != null ? leverJob.getDescriptionPlain() : "")
                 .build();
-    }
-
-    private String formatCompanyName(String company) {
-        return company.replace("-", " ")
-                .substring(0, 1).toUpperCase() + company.replace("-", " ").substring(1);
     }
 
     @Data

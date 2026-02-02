@@ -31,6 +31,10 @@ public class TeamtailorSource extends AbstractJobSource {
         return "Teamtailor";
     }
 
+    protected String getApiUrl(String company) {
+        return String.format(API_URL_TEMPLATE, company);
+    }
+
     @Override
     protected List<String> getCompanies() {
         return sourcesConfig.getTeamtailor();
@@ -38,7 +42,7 @@ public class TeamtailorSource extends AbstractJobSource {
 
     @Override
     protected Mono<List<Job>> fetchCompanyJobs(String company) {
-        String url = String.format(API_URL_TEMPLATE, company);
+        String url = getApiUrl(company);
 
         return timedGet(url, TeamtailorResponse.class)
                 .map(response -> {
@@ -54,29 +58,16 @@ public class TeamtailorSource extends AbstractJobSource {
 
     private Job mapToJob(TeamtailorJob ttJob, String company, List<TeamtailorIncluded> included) {
         TeamtailorAttributes attrs = ttJob.getAttributes();
-        String location = "";
-
-        // Try to find location from included data
-        if (included != null && ttJob.getRelationships() != null
-                && ttJob.getRelationships().getLocations() != null
-                && ttJob.getRelationships().getLocations().getData() != null) {
-            for (TeamtailorRelationshipData locRef : ttJob.getRelationships().getLocations().getData()) {
-                for (TeamtailorIncluded inc : included) {
-                    if ("locations".equals(inc.getType()) && locRef.getId().equals(inc.getId())) {
-                        if (inc.getAttributes() != null && inc.getAttributes().getName() != null) {
-                            location = inc.getAttributes().getName();
-                            break;
-                        }
-                    }
-                }
-                if (!location.isEmpty()) break;
-            }
+        if (attrs == null) {
+            attrs = new TeamtailorAttributes();
         }
+
+        String location = findLocation(ttJob, included);
 
         return baseJob()
                 .title(attrs.getTitle())
-                .url(attrs.getCareersite_job_url() != null
-                        ? attrs.getCareersite_job_url()
+                .url(attrs.getCareersiteJobUrl() != null
+                        ? attrs.getCareersiteJobUrl()
                         : "https://" + company + ".teamtailor.com/jobs/" + ttJob.getId())
                 .company(formatCompanyName(company))
                 .location(location)
@@ -84,9 +75,22 @@ public class TeamtailorSource extends AbstractJobSource {
                 .build();
     }
 
-    private String formatCompanyName(String company) {
-        return company.replace("-", " ")
-                .substring(0, 1).toUpperCase() + company.replace("-", " ").substring(1);
+    private String findLocation(TeamtailorJob ttJob, List<TeamtailorIncluded> included) {
+        if (included == null || ttJob.getRelationships() == null
+                || ttJob.getRelationships().getLocations() == null
+                || ttJob.getRelationships().getLocations().getData() == null) {
+            return "";
+        }
+
+        for (TeamtailorRelationshipData locRef : ttJob.getRelationships().getLocations().getData()) {
+            for (TeamtailorIncluded inc : included) {
+                if ("locations".equals(inc.getType()) && locRef.getId().equals(inc.getId())
+                        && inc.getAttributes() != null && inc.getAttributes().getName() != null) {
+                    return inc.getAttributes().getName();
+                }
+            }
+        }
+        return "";
     }
 
     @Data
@@ -111,7 +115,7 @@ public class TeamtailorSource extends AbstractJobSource {
         private String title;
         private String body;
         @JsonProperty("careersite-job-url")
-        private String careersite_job_url;
+        private String careersiteJobUrl;
     }
 
     @Data

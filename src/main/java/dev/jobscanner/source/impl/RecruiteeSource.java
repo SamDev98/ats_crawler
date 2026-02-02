@@ -1,6 +1,8 @@
 package dev.jobscanner.source.impl;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import dev.jobscanner.config.SourcesConfig;
 import dev.jobscanner.metrics.ScannerMetrics;
 import dev.jobscanner.model.Job;
@@ -30,6 +32,10 @@ public class RecruiteeSource extends AbstractJobSource {
         return "Recruitee";
     }
 
+    protected String getApiUrl(String company) {
+        return String.format(API_URL_TEMPLATE, company);
+    }
+
     @Override
     protected List<String> getCompanies() {
         return sourcesConfig.getRecruitee();
@@ -37,7 +43,7 @@ public class RecruiteeSource extends AbstractJobSource {
 
     @Override
     protected Mono<List<Job>> fetchCompanyJobs(String company) {
-        String url = String.format(API_URL_TEMPLATE, company);
+        String url = getApiUrl(company);
 
         return timedGet(url, RecruiteeResponse.class)
                 .map(response -> {
@@ -54,22 +60,17 @@ public class RecruiteeSource extends AbstractJobSource {
     private Job mapToJob(RecruiteeJob recruiteeJob, String company) {
         return baseJob()
                 .title(recruiteeJob.getTitle())
-                .url(recruiteeJob.getCareers_url() != null
-                        ? recruiteeJob.getCareers_url()
+                .url(recruiteeJob.getCareersUrl() != null
+                        ? recruiteeJob.getCareersUrl()
                         : "https://" + company + ".recruitee.com/o/" + recruiteeJob.getSlug())
-                .company(recruiteeJob.getCompany_name() != null
-                        ? recruiteeJob.getCompany_name()
+                .company(recruiteeJob.getCompanyName() != null
+                        ? recruiteeJob.getCompanyName()
                         : formatCompanyName(company))
                 .location(recruiteeJob.getLocation() != null ? recruiteeJob.getLocation() : "")
                 .description(recruiteeJob.getDescription() != null
                         ? stripHtml(recruiteeJob.getDescription())
                         : "")
                 .build();
-    }
-
-    private String formatCompanyName(String company) {
-        return company.replace("-", " ")
-                .substring(0, 1).toUpperCase() + company.replace("-", " ").substring(1);
     }
 
     @Data
@@ -86,7 +87,9 @@ public class RecruiteeSource extends AbstractJobSource {
         private String title;
         private String description;
         private String location;
-        private String company_name;
-        private String careers_url;
+        @JsonProperty("company_name")
+        private String companyName;
+        @JsonProperty("careers_url")
+        private String careersUrl;
     }
 }

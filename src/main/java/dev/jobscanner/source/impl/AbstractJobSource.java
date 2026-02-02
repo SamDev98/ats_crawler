@@ -72,8 +72,22 @@ public abstract class AbstractJobSource implements JobSource {
     }
 
     /**
+     * Standard company name formatting from slug (e.g. "nubank-brazil" -> "Nubank
+     * brazil").
+     */
+    protected String formatCompanyName(String company) {
+        if (company == null || company.isBlank())
+            return "";
+        String spaced = company.replace("-", " ");
+        if (spaced.length() < 2)
+            return spaced.toUpperCase();
+        return spaced.substring(0, 1).toUpperCase() + spaced.substring(1);
+    }
+
+    /**
      * Execute a timed GET request.
      */
+    @SuppressWarnings("null")
     protected <T> Mono<T> timedGet(String url, Class<T> responseType) {
         long start = System.currentTimeMillis();
         return webClient.get()
@@ -90,6 +104,7 @@ public abstract class AbstractJobSource implements JobSource {
     /**
      * Execute a timed POST request.
      */
+    @SuppressWarnings("null")
     protected <T, R> Mono<T> timedPost(String url, R body, Class<T> responseType) {
         long start = System.currentTimeMillis();
         return webClient.post()

@@ -31,6 +31,10 @@ public class GreenhouseSource extends AbstractJobSource {
         return "Greenhouse";
     }
 
+    protected String getApiUrl(String company) {
+        return String.format(API_URL, company);
+    }
+
     @Override
     protected List<String> getCompanies() {
         return sourcesConfig.getGreenhouse();
@@ -38,11 +42,12 @@ public class GreenhouseSource extends AbstractJobSource {
 
     @Override
     protected Mono<List<Job>> fetchCompanyJobs(String company) {
-        String url = String.format(API_URL, company);
+        String url = getApiUrl(company);
 
         return timedGet(url, GreenhouseResponse.class)
                 .map(response -> {
-                    if (response.getJobs() == null) return List.<Job>of();
+                    if (response.getJobs() == null)
+                        return List.<Job>of();
                     return response.getJobs().stream()
                             .map(job -> mapToJob(job, company))
                             .toList();
@@ -63,11 +68,6 @@ public class GreenhouseSource extends AbstractJobSource {
                 .location(location)
                 .description(stripHtml(ghJob.getContent()))
                 .build();
-    }
-
-    private String formatCompanyName(String company) {
-        return company.replace("-", " ")
-                .substring(0, 1).toUpperCase() + company.replace("-", " ").substring(1);
     }
 
     @Data

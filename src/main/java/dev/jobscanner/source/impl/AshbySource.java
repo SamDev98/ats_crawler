@@ -38,6 +38,10 @@ public class AshbySource extends AbstractJobSource {
         return "Ashby";
     }
 
+    protected String getApiUrl() {
+        return API_URL;
+    }
+
     @Override
     protected List<String> getCompanies() {
         return sourcesConfig.getAshby();
@@ -48,16 +52,16 @@ public class AshbySource extends AbstractJobSource {
         Map<String, Object> payload = Map.of(
                 "operationName", "ApiJobBoardWithTeams",
                 "variables", Map.of("organizationHostedJobsPageName", company),
-                "query", GRAPHQL_QUERY
-        );
+                "query", GRAPHQL_QUERY);
 
-        return timedPost(API_URL, payload, AshbyResponse.class)
+        return timedPost(getApiUrl(), payload, AshbyResponse.class)
                 .map(response -> {
                     if (response.getData() == null || response.getData().getJobBoard() == null) {
                         return List.<Job>of();
                     }
                     List<AshbyJob> jobs = response.getData().getJobBoard().getJobPostings();
-                    if (jobs == null) return List.<Job>of();
+                    if (jobs == null)
+                        return List.<Job>of();
                     return jobs.stream()
                             .map(job -> mapToJob(job, company))
                             .toList();
@@ -73,11 +77,6 @@ public class AshbySource extends AbstractJobSource {
                 .location(ashbyJob.getLocationName() != null ? ashbyJob.getLocationName() : "")
                 .description(ashbyJob.getDescriptionPlain() != null ? ashbyJob.getDescriptionPlain() : "")
                 .build();
-    }
-
-    private String formatCompanyName(String company) {
-        return company.replace("-", " ")
-                .substring(0, 1).toUpperCase() + company.replace("-", " ").substring(1);
     }
 
     @Data

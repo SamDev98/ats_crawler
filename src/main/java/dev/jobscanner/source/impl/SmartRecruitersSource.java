@@ -20,7 +20,8 @@ public class SmartRecruitersSource extends AbstractJobSource {
 
     private final SourcesConfig sourcesConfig;
 
-    public SmartRecruitersSource(WebClient.Builder webClientBuilder, ScannerMetrics metrics, SourcesConfig sourcesConfig) {
+    public SmartRecruitersSource(WebClient.Builder webClientBuilder, ScannerMetrics metrics,
+            SourcesConfig sourcesConfig) {
         super(webClientBuilder, metrics);
         this.sourcesConfig = sourcesConfig;
     }
@@ -30,6 +31,10 @@ public class SmartRecruitersSource extends AbstractJobSource {
         return "SmartRecruiters";
     }
 
+    protected String getApiUrl(String company) {
+        return String.format(API_URL_TEMPLATE, company);
+    }
+
     @Override
     protected List<String> getCompanies() {
         return sourcesConfig.getSmartrecruiters();
@@ -37,7 +42,7 @@ public class SmartRecruitersSource extends AbstractJobSource {
 
     @Override
     protected Mono<List<Job>> fetchCompanyJobs(String company) {
-        String url = String.format(API_URL_TEMPLATE, company);
+        String url = getApiUrl(company);
 
         return timedGet(url, SmartRecruitersResponse.class)
                 .map(response -> {
@@ -54,9 +59,11 @@ public class SmartRecruitersSource extends AbstractJobSource {
     private Job mapToJob(SmartRecruitersJob srJob, String company) {
         String location = "";
         if (srJob.getLocation() != null) {
-            location = srJob.getLocation().getCity() != null
-                    ? srJob.getLocation().getCity()
-                    : (srJob.getLocation().getCountry() != null ? srJob.getLocation().getCountry() : "");
+            if (srJob.getLocation().getCity() != null) {
+                location = srJob.getLocation().getCity();
+            } else if (srJob.getLocation().getCountry() != null) {
+                location = srJob.getLocation().getCountry();
+            }
         }
 
         String url = srJob.getRef() != null
@@ -85,11 +92,6 @@ public class SmartRecruitersSource extends AbstractJobSource {
             sb.append(" ").append(stripHtml(sections.getQualifications().getText()));
         }
         return sb.toString().trim();
-    }
-
-    private String formatCompanyName(String company) {
-        return company.replace("-", " ")
-                .substring(0, 1).toUpperCase() + company.replace("-", " ").substring(1);
     }
 
     @Data
