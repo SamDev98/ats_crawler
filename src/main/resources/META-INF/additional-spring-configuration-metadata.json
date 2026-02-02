@@ -1,3 +1,38 @@
 {
-  "properties": []
+  "properties": [
+    {
+      "name": "scanner.dry-run",
+      "type": "java.lang.Boolean",
+      "description": "If true, skip sending emails and only log results.",
+      "defaultValue": false
+    },
+    {
+      "name": "scanner.metrics-wait-seconds",
+      "type": "java.lang.Integer",
+      "description": "Wait time after scan to allow metrics scraping.",
+      "defaultValue": 0
+    },
+    {
+      "name": "scanner.email.to",
+      "type": "java.lang.String",
+      "description": "Recipient email address for job digests."
+    },
+    {
+      "name": "app.ai.enabled",
+      "type": "java.lang.Boolean",
+      "description": "Enable AI-powered job enhancement.",
+      "defaultValue": false
+    },
+    {
+      "name": "app.ai.gemini.api-key",
+      "type": "java.lang.String",
+      "description": "Google AI Studio API Key."
+    },
+    {
+      "name": "app.ai.gemini.model",
+      "type": "java.lang.String",
+      "description": "Gemini model to use.",
+      "defaultValue": "gemini-1.5-flash"
+    }
+  ]
 }

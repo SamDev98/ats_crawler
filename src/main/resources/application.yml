@@ -65,7 +65,6 @@ management:
       maximum-expected-value:
         '[http.client.requests]': 10s
     enable:
-      # Disable detailed URI tagging for WebClient (too many unique URLs)
       '[http.client.requests]': false
   prometheus:
     metrics:
@@ -79,34 +78,21 @@ scanner:
   email:
     to: ${EMAIL_TO:}
 
-# Spring AI Configuration
-spring:
-  ai:
-    google:
-      chat:
-        options:
-          model: gemini-1.5-flash
-  cloud:
-    google:
-      credentials:
-        api-key: ${GEMINI_API_KEY:}
-
 # Application Custom Configuration
 app:
   ai:
     enabled: ${AI_ENABLED:false}
-
-# Scanner Configuration
-scanner:
-  metrics-wait-seconds: 0
+    gemini:
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-1.5-flash}
 
 # Logging Configuration
 logging:
   level:
     root: INFO
-    dev.jobscanner: INFO
-    org.springframework.web.reactive: WARN
-    org.hibernate: WARN
+    '[dev.jobscanner]': INFO
+    '[org.springframework.web.reactive]': WARN
+    '[org.hibernate]': WARN
   pattern:
     console: '%d{yyyy-MM-dd HH:mm:ss} - %level - %logger{36} - %msg%n'
 
