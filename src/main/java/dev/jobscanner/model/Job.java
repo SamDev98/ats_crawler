@@ -26,7 +26,8 @@ public class Job {
     private int score;
     private Map<String, Integer> scoreBreakdown;
 
-    // AI enhancements (optional, populated by AiEnhancerService)
+    // AI enhancements (optional, populated by JobEnhancer)
+    private String aiAnalysis;        // Full AI analysis text
     private String summary;
     private String normalizedLocation;
     private String aiTechnologies;

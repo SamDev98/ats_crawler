@@ -1,5 +1,6 @@
 package dev.jobscanner.service;
 
+import dev.jobscanner.ai.JobEnhancer;
 import dev.jobscanner.metrics.ScannerMetrics;
 import dev.jobscanner.model.Job;
 import dev.jobscanner.service.RulesService.EligibilityResult;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Main orchestration service for job scanning pipeline.
@@ -23,11 +25,14 @@ import java.util.List;
 @RequiredArgsConstructor
 public class JobScannerService {
 
+    private static final String SEPARATOR = "========================================";
+
     private final List<JobSource> jobSources;
     private final RulesService rulesService;
     private final ScoringService scoringService;
     private final DeduplicationService deduplicationService;
     private final EmailService emailService;
+    private final JobEnhancer jobEnhancer;
     private final ScannerMetrics metrics;
 
     @Value("${scanner.dry-run:false}")
@@ -39,9 +44,9 @@ public class JobScannerService {
      * @return List of qualified jobs that were processed
      */
     public Mono<List<Job>> runPipeline() {
-        log.info("========================================");
+        log.info(SEPARATOR);
         log.info("Job Scanner Pipeline Starting");
-        log.info("========================================");
+        log.info(SEPARATOR);
         log.info("Sources configured: {}", jobSources.size());
         log.info("Dry run mode: {}", dryRun);
 
@@ -64,7 +69,7 @@ public class JobScannerService {
                     // Process each job through rules and scoring
                     List<Job> qualifiedJobs = newJobs.stream()
                             .map(this::processJob)
-                            .filter(job -> job != null)
+                            .filter(Objects::nonNull)
                             .sorted(Comparator.comparingInt(Job::getScore).reversed())
                             .toList();
 
@@ -81,8 +86,9 @@ public class JobScannerService {
                         return Mono.just(List.<Job>of());
                     }
 
-                    // Send email and mark as sent
-                    return sendAndMarkJobs(qualifiedJobs, allJobs.size());
+                    // Enhance jobs with AI (if enabled)
+                    return enhanceJobsWithAI(qualifiedJobs)
+                            .flatMap(enhancedJobs -> sendAndMarkJobs(enhancedJobs, allJobs.size()));
                 });
     }
 
@@ -94,6 +100,7 @@ public class JobScannerService {
                 .flatMap(source -> {
                     log.info("Fetching from source: {}", source.getName());
                     return source.fetchJobs()
+                            .filter(job -> job.getUrl() != null && !job.getUrl().isBlank())
                             .doOnNext(job -> log.debug("Found job: {}", job.getTitle()));
                 });
     }
@@ -133,6 +140,24 @@ public class JobScannerService {
     }
 
     /**
+     * Enhance qualified jobs with AI analysis (if enabled).
+     */
+    private Mono<List<Job>> enhanceJobsWithAI(List<Job> jobs) {
+        if (!jobEnhancer.isEnabled()) {
+            log.info("AI enhancement disabled - skipping");
+            return Mono.just(jobs);
+        }
+
+        log.info("Enhancing {} jobs with AI analysis...", jobs.size());
+        return jobEnhancer.enhanceAll(jobs)
+                .doOnSuccess(enhanced -> log.info("AI enhancement completed for {} jobs", enhanced.size()))
+                .onErrorResume(e -> {
+                    log.error("AI enhancement failed: {} - continuing without AI", e.getMessage());
+                    return Mono.just(jobs);
+                });
+    }
+
+    /**
      * Send email with qualified jobs and mark them as sent.
      */
     private Mono<List<Job>> sendAndMarkJobs(List<Job> qualifiedJobs, int totalFound) {
@@ -146,7 +171,7 @@ public class JobScannerService {
 
         return emailService.sendJobDigest(qualifiedJobs)
                 .flatMap(success -> {
-                    if (success) {
+                    if (Boolean.TRUE.equals(success)) {
                         deduplicationService.markAsSent(qualifiedJobs);
                         metrics.recordJobsSent(qualifiedJobs.size());
                         metrics.updateLastRunStats(totalFound, qualifiedJobs.size(), qualifiedJobs.size());
@@ -155,7 +180,7 @@ public class JobScannerService {
                     } else {
                         log.error("Failed to send email - jobs NOT marked as sent");
                         metrics.updateLastRunStats(totalFound, qualifiedJobs.size(), 0);
-                        return Mono.error(new RuntimeException("Email sending failed"));
+                        return Mono.error(new IllegalStateException("Email sending failed"));
                     }
                 });
     }

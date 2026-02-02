@@ -2,6 +2,7 @@ package dev.jobscanner.ai;
 
 import dev.jobscanner.model.Job;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
@@ -13,6 +14,7 @@ import java.util.List;
  */
 @Slf4j
 @Service
+@ConditionalOnProperty(name = "app.ai.enabled", havingValue = "false", matchIfMissing = true)
 public class NoOpJobEnhancer implements JobEnhancer {
 
     public NoOpJobEnhancer() {
