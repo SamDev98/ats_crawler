@@ -242,6 +242,16 @@ sources:
     - heap
     - fullstory
     - logrocket
+    - remote
+    - deel
+    - hopin
+    - vercel
+    - planetscale
+    - supabase
+    - railway
+    - render
+    - fly-io
+    - tailscale
     # E-commerce/Marketplace (Java common)
     - shopify
     - bigcommerce
@@ -458,6 +468,16 @@ sources:
     - anecdotes
     - hyperproof
     - auditboard
+    - airbnb
+    - doordash
+    - uber
+    - lyft
+    - robinhood
+    - coinbase
+    - kraken
+    - gemini
+    - circle
+    - paxos
 
   ashby:
     # Remote-first EOR/PEO (hire globally)
@@ -549,6 +569,11 @@ sources:
     - paylocity
     - paycom
     - paycor
+    - anthropic
+    - openai
+    - jasper
+    - cloudwalk
+    - perplexity
 
   workable:
     # LATAM Fintechs
@@ -578,6 +603,15 @@ sources:
     - mollie
     - klarna
     - affirm
+    - vimeo
+    - bevy
+    - framer
+    - lottiefiles
+    - social-bee
+    - transifex
+    - travelperk
+    - vivino
+    - poka
     - afterpay
     - sezzle
     - splitit
@@ -910,3 +944,17 @@ sources:
     - freedom-finance
     - instabank
     - monobank
+
+  bamboohr:
+    # Most major companies now block direct JSON access to BambooHR.
+    # Leaving empty for now until a better strategy (scraping) is implemented.
+
+  comeet:
+    - comeet-sandbox:28.000.C01 # Sample from sandbox
+
+  homerun:
+    - bunq
+    - join-us-at-mollie
+    - polarsteps
+    - flippa
+    - creative-fabrica

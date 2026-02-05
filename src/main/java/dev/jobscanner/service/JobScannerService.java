@@ -150,7 +150,12 @@ public class JobScannerService {
 
         log.info("Enhancing {} jobs with AI analysis...", jobs.size());
         return jobEnhancer.enhanceAll(jobs)
-                .doOnSuccess(enhanced -> log.info("AI enhancement completed for {} jobs", enhanced.size()))
+                .map(enhancedJobs -> enhancedJobs.stream()
+                        .filter(job -> job.getAiAnalysis() == null
+                                || !job.getAiAnalysis().contains("REMOVE_JOB_IA_FILTER"))
+                        .toList())
+                .doOnSuccess(enhanced -> log.info("AI enhancement completed. {} jobs remaining after IA filter.",
+                        enhanced.size()))
                 .onErrorResume(e -> {
                     log.error("AI enhancement failed: {} - continuing without AI", e.getMessage());
                     return Mono.just(jobs);

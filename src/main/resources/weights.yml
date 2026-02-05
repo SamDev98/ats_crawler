@@ -3,16 +3,16 @@
 
 scoring:
   # Minimum score required to qualify for email (0-100)
-  threshold: 70
+  threshold: 45
 
   # Weight for having "Java" in the job title
-  java-in-title: 20
+  java-in-title: 25
 
   # Weight for senior/lead/staff/principal level positions
-  senior-level: 10
+  senior-level: 15
 
   # Weight for explicitly remote positions
-  remote-explicit: 15
+  remote-explicit: 20
 
   # Weight for not having US-only restrictions (baseline expectation)
   no-us-only: 20
@@ -21,41 +21,131 @@ scoring:
   contract-b2b: 15
 
   # Weight for LATAM/Brazil specific positions
-  latam-brazil-boost: 10
+  latam-brazil-boost: 15
 
   # Weight for compatible tech stack (Spring, Kafka, AWS, K8s, etc.)
-  tech-stack: 20
+  tech-stack: 30
 
   # Tech stack terms and their individual weights
   tech-stack-terms:
-    spring: 5
-    spring-boot: 5
-    springboot: 5
-    kafka: 3
-    aws: 3
-    kubernetes: 3
-    k8s: 3
-    docker: 2
-    microservices: 2
-    postgresql: 2
-    postgres: 2
-    mysql: 2
-    mongodb: 2
-    redis: 2
-    elasticsearch: 2
-    rabbitmq: 2
-    grpc: 2
-    rest: 1
-    api: 1
-    ci/cd: 2
-    jenkins: 1
-    terraform: 2
-    git: 1
-    agile: 1
-    scrum: 1
-    backend: 2
-    fullstack: 2
-    'full stack': 2
+    java: 10
+    spring: 10
+    'spring boot': 10
+    springboot: 10
+    quarkus: 10
+    micronaut: 10
+    kafka: 5
+    aws: 5
+    kubernetes: 5
+    k8s: 5
+    docker: 5
+    microservices: 5
+    postgresql: 3
+    postgres: 3
+    mysql: 3
+    mongodb: 3
+    redis: 3
+    elasticsearch: 3
+    rabbitmq: 3
+    grpc: 5
+    rest: 2
+    api: 2
+    ci/cd: 3
+    jenkins: 2
+    terraform: 3
+    git: 2
+    agile: 2
+    scrum: 2
+    backend: 5
+    fullstack: 5
+    'full stack': 5
+    solidity: 10
+    react: 5
+    typescript: 3
+    node: 3
+    go: 5
+    kotlin: 5
+    junit: 5
+    mockito: 5
+    cucumber: 5
+    testing: 3
+    architecture: 5
+    cloud: 5
+    paas: 5
+    saas: 5
+    distributed: 5
+    scalable: 5
+    high-availability: 5
+    messaging: 3
+    event-driven: 5
+    nosql: 3
+    sql: 3
+    hibernate: 5
+    jpa: 5
+    maven: 3
+    gradle: 3
+    github: 2
+    gitlab: 2
+    azure: 5
+    gcp: 5
+    linux: 3
+    bash: 2
+    shell: 2
+    scripting: 2
+    monitoring: 3
+    observability: 3
+    prometheus: 3
+    grafana: 3
+    datadog: 3
+    newrelic: 3
+    splunk: 3
+    elk: 3
+    logging: 2
+    tracing: 3
+    security: 3
+    auth: 2
+    oauth: 3
+    jwt: 3
+    saml: 3
+    encryption: 2
+    performance: 3
+    optimization: 3
+    latency: 3
+    throughput: 3
+    concurrency: 5
+    multithreading: 5
+    asynchronous: 5
+    reactive: 5
+    webflux: 10
+    project-reactor: 5
+    lambda: 3
+    serverless: 5
+    container: 3
+    orchestration: 3
+    devops: 5
+    sre: 5
+    integration: 2
+    implementation: 2
+    deployment: 2
+    infrastructure: 3
+    automation: 3
+    maintenance: 2
+    support: 1
+    leadership: 5
+    mentoring: 5
+    coaching: 5
+    communication: 2
+    problem-solving: 2
+    analytical: 2
+    self-motivated: 1
+    team-player: 1
+    collaborative: 2
+    English: 5
+    Inglês: 5
+    Portuguesa: 2
+    Portuguese: 2
+    Espanhol: 2
+    Spanish: 2
 
   # Seniority level terms
   seniority-terms:
