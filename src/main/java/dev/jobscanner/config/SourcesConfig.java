@@ -23,13 +23,17 @@ public class SourcesConfig {
     private List<String> smartrecruiters = new ArrayList<>();
     private List<String> recruitee = new ArrayList<>();
     private List<String> teamtailor = new ArrayList<>();
+    private List<String> bamboohr = new ArrayList<>();
+    private List<String> comeet = new ArrayList<>();
+    private List<String> homerun = new ArrayList<>();
 
     /**
      * Get total number of configured companies across all sources.
      */
     public int getTotalCompanies() {
         return lever.size() + greenhouse.size() + ashby.size() +
-               workable.size() + smartrecruiters.size() +
-               recruitee.size() + teamtailor.size();
+                workable.size() + smartrecruiters.size() +
+                recruitee.size() + teamtailor.size() +
+                bamboohr.size() + comeet.size() + homerun.size();
     }
 }
