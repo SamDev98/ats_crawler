@@ -5,9 +5,11 @@ import dev.jobscanner.model.Job;
 import dev.jobscanner.source.JobSource;
 import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
+import org.springframework.http.client.reactive.ReactorClientHttpConnector;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.netty.http.client.HttpClient;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -20,8 +22,16 @@ public abstract class AbstractJobSource implements JobSource {
     protected final ScannerMetrics metrics;
 
     protected AbstractJobSource(WebClient.Builder webClientBuilder, ScannerMetrics metrics) {
+        HttpClient httpClient = HttpClient.create()
+                .httpResponseDecoder(spec -> spec.maxHeaderSize(32768));
+
         this.webClient = webClientBuilder
                 .codecs(config -> config.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .defaultHeader("User-Agent",
+                        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
+                .defaultHeader("Accept", "application/json, text/plain, */*")
+                .defaultHeader("Accept-Language", "en-US,en;q=0.9")
                 .build();
         this.metrics = metrics;
     }
@@ -44,7 +54,7 @@ public abstract class AbstractJobSource implements JobSource {
         return Flux.fromIterable(companies)
                 .flatMap(company -> fetchCompanyJobs(company)
                         .doOnError(e -> {
-                            log.debug("{} - {} failed: {}", getName(), company, e.getMessage());
+                            log.warn("{} - {} failed: {}", getName(), company, e.getMessage());
                             metrics.incrementFetchFailures(getName());
                         })
                         .onErrorResume(e -> Mono.just(List.of()))
