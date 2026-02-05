@@ -51,8 +51,7 @@ public class GreenhouseSource extends AbstractJobSource {
                     return response.getJobs().stream()
                             .map(job -> mapToJob(job, company))
                             .toList();
-                })
-                .onErrorResume(e -> Mono.just(List.of()));
+                });
     }
 
     private Job mapToJob(GreenhouseJob ghJob, String company) {

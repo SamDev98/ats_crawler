@@ -52,8 +52,7 @@ public class TeamtailorSource extends AbstractJobSource {
                     return response.getData().stream()
                             .map(job -> mapToJob(job, company, response.getIncluded()))
                             .toList();
-                })
-                .onErrorResume(e -> Mono.just(List.of()));
+                });
     }
 
     private Job mapToJob(TeamtailorJob ttJob, String company, List<TeamtailorIncluded> included) {

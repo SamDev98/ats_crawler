@@ -53,8 +53,7 @@ public class RecruiteeSource extends AbstractJobSource {
                     return response.getOffers().stream()
                             .map(job -> mapToJob(job, company))
                             .toList();
-                })
-                .onErrorResume(e -> Mono.just(List.of()));
+                });
     }
 
     private Job mapToJob(RecruiteeJob recruiteeJob, String company) {

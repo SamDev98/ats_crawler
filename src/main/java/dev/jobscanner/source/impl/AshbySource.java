@@ -65,8 +65,7 @@ public class AshbySource extends AbstractJobSource {
                     return jobs.stream()
                             .map(job -> mapToJob(job, company))
                             .toList();
-                })
-                .onErrorResume(e -> Mono.just(List.of()));
+                });
     }
 
     private Job mapToJob(AshbyJob ashbyJob, String company) {

@@ -47,13 +47,15 @@ public class LeverSource extends AbstractJobSource {
         return timedGet(url, LeverJob[].class)
                 .map(jobs -> java.util.Arrays.stream(jobs)
                         .map(job -> mapToJob(job, company))
-                        .toList())
-                .onErrorResume(e -> Mono.just(List.of()));
+                        .toList());
     }
 
     private Job mapToJob(LeverJob leverJob, String company) {
-        Map<String, String> categories = leverJob.getCategories();
-        String location = categories != null ? categories.getOrDefault("location", "") : "";
+        Map<String, Object> categories = leverJob.getCategories();
+        String location = "";
+        if (categories != null && categories.get("location") != null) {
+            location = String.valueOf(categories.get("location"));
+        }
 
         return baseJob()
                 .title(leverJob.getText())
@@ -70,6 +72,6 @@ public class LeverSource extends AbstractJobSource {
         private String text;
         private String hostedUrl;
         private String descriptionPlain;
-        private Map<String, String> categories;
+        private Map<String, Object> categories;
     }
 }

@@ -51,8 +51,7 @@ public class WorkableSource extends AbstractJobSource {
                     return response.getResults().stream()
                             .map(job -> mapToJob(job, company))
                             .toList();
-                })
-                .onErrorResume(e -> Mono.just(List.of()));
+                });
     }
 
     private Job mapToJob(WorkableJob workableJob, String company) {
