@@ -105,30 +105,26 @@ public class GeminiJobEnhancer implements JobEnhancer {
             description = description.substring(0, 8000) + "...";
         }
 
-        return String.format("""
-                Analise a seguinte vaga de emprego:
+        return String.format(
+                """
+                        Você é um recrutador técnico especialista em Java. Analise a vaga abaixo e determine se ela é um bom "match" para um desenvolvedor Java/Backend que busca vagas remotas ou B2B.
 
-                Título: %s
-                Empresa: %s
-                Localização: %s
+                        Título: %s
+                        Empresa: %s
+                        Localização: %s
 
-                Descrição:
-                %s
+                        Descrição:
+                        %s
 
-                Responda em PORTUGUÊS de forma concisa (máximo 200 palavras):
+                        Responda estritamente no formato abaixo em PORTUGUÊS:
 
-                1. **Stack Principal**: Liste as tecnologias mencionadas (Java, Spring, Kafka, AWS, etc.)
-
-                2. **Nível**: É uma vaga Sênior/Lead/Staff ou permite Mid-level?
-
-                3. **Remote Status**: É realmente remoto global ou tem restrições geográficas?
-
-                4. **Red Flags**: Algo preocupante? (muitas responsabilidades, salário baixo implícito, etc.)
-
-                5. **Pontos Positivos**: Benefícios ou diferenciais mencionados?
-
-                Seja direto e objetivo.
-                """,
+                        Veredito: [EXCELENTE / BOM / POUCO RELEVANTE / DESCARTAR]
+                        Score IA: [0-100]
+                        Stack: [Lista curta de tecnologias principais]
+                        Nível: [Senior/Mid/Lead/Staff]
+                        Match: [Explique em 2 frases por que esta vaga encaixa ou não no perfil de Java Developer]
+                        Red Flags: [Qualquer ponto impeditivo ou negativo]
+                        """,
                 job.getTitle() != null ? job.getTitle() : "Não informado",
                 job.getCompany() != null ? job.getCompany() : "Não informada",
                 job.getLocation() != null ? job.getLocation() : "Não informada",
@@ -151,7 +147,16 @@ public class GeminiJobEnhancer implements JobEnhancer {
                 || candidate.content().parts().isEmpty()) {
             return null;
         }
-        return candidate.content().parts().get(0).text();
+        String text = candidate.content().parts().get(0).text();
+
+        // Se a IA indicar para descartar, retornamos um marcador especial para o
+        // service filtrar
+        if (text != null && text.contains("Veredito: DESCARTAR")) {
+            log.info("Job filtered out by AI Verdict");
+            return "REMOVE_JOB_IA_FILTER";
+        }
+
+        return text;
     }
 
     private boolean isRetryableError(Throwable e) {
