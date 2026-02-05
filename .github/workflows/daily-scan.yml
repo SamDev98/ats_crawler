@@ -47,26 +47,24 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
-          SPRING_AI_GEMINI_API_KEY: ${{ secrets.SPRING_AI_GEMINI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          AI_ENABLED: "true"
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
           SQLITE_PATH: ./data/jobs.db
         run: |
-          java -jar target/*.jar --spring.profiles.active=ai | tee output.log
+          java -jar target/*.jar | tee output.log
 
       - name: Generate Job Summary
         if: always()
         run: |
           echo "### 🚀 Job Scanner Results" >> $GITHUB_STEP_SUMMARY
-          if grep -q "Qualified jobs" output.log; then
-            QUALIFIED=$(grep "Qualified jobs" output.log | awk '{print $NF}')
-            TOTAL=$(grep "Total jobs fetched" output.log | awk '{print $NF}')
-            echo "- **Total Scanned:** $TOTAL" >> $GITHUB_STEP_SUMMARY
-            echo "- **Qualified:** $QUALIFIED" >> $GITHUB_STEP_SUMMARY
+          if grep -q "Jobs sent:" job-scanner-spring/output.log; then
+            QUALIFIED=$(grep "Jobs sent:" job-scanner-spring/output.log | awk '{print $NF}')
+            echo "- **Jobs Qualificados e Enviados:** $QUALIFIED" >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
-            echo "#### Top Matches found:" >> $GITHUB_STEP_SUMMARY
-            grep "\[" output.log | grep "@" | head -n 10 | sed 's/^.*INFO - //' >> $GITHUB_STEP_SUMMARY
+            echo "#### Detalhes no log abaixo." >> $GITHUB_STEP_SUMMARY
           else
-            echo "❌ Scanner failed to produce output summary." >> $GITHUB_STEP_SUMMARY
+            echo "❌ Scanner não produziu resumo de saída ou falhou." >> $GITHUB_STEP_SUMMARY
           fi
 
       - name: Upload database artifact

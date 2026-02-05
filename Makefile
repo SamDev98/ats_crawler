@@ -1,3 +1,9 @@
+# Carrega variáveis do arquivo .env se ele existir
+ifneq ("$(wildcard .env)","")
+    include .env
+    export $(shell sed 's/=.*//' .env)
+endif
+
 # Job Scanner - Makefile
 # Atalhos para comandos comuns
 
@@ -34,6 +40,13 @@ test: ## Executa os testes
 clean: ## Limpa arquivos de build
 	./mvnw clean -q
 	@echo "$(GREEN)Limpeza concluída!$(RESET)"
+
+reset-db: ## Apaga o histórico de vagas (zerar banco)
+	@echo "$(YELLOW)Zerando histórico de vagas...$(RESET)"
+	rm -f data/jobs.db*
+	@echo "$(GREEN)Banco de dados reiniciado!$(RESET)"
+
+fresh-dry: reset-db run-dry ## Zera o banco e executa em modo dry-run
 
 compile: ## Apenas compila (sem empacotar)
 	./mvnw compile -q

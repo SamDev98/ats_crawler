@@ -131,6 +131,24 @@
         background-color: #e1bee7;
         color: #4a148c;
       }
+      .ai-analysis {
+        margin-top: 15px;
+        padding: 12px;
+        background-color: #f0f7ff;
+        border-left: 4px solid #0056b3;
+        border-radius: 0 4px 4px 0;
+        font-size: 14px;
+      }
+      .ai-analysis h3 {
+        margin: 0 0 8px 0;
+        font-size: 13px;
+        text-transform: uppercase;
+        color: #0056b3;
+        letter-spacing: 0.5px;
+      }
+      .ai-content {
+        white-space: pre-line;
+      }
       .apply-btn {
         display: inline-block;
         background-color: #0056b3;
@@ -231,6 +249,13 @@
             <span class="badge badge-source" th:text="${job.source}"
               >Source</span
             >
+          </div>
+
+          <div th:if="${job.aiAnalysis != null}" class="ai-analysis">
+            <h3>✨ Análise da IA (Gemini)</h3>
+            <div class="ai-content" th:text="${job.aiAnalysis}">
+              AI Analysis content here...
+            </div>
           </div>
 
           <a
