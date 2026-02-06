@@ -10,6 +10,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.http.client.HttpClient;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -52,9 +53,10 @@ public abstract class AbstractJobSource implements JobSource {
         log.info("Fetching jobs from {} ({} companies)", getName(), companies.size());
 
         return Flux.fromIterable(companies)
-                .delayElements(Duration.ofMillis(100)) // Add 100ms delay between companies to avoid 429s (Rate
-                                                       // Limiting)
+                .delayElements(Duration.ofMillis(300)) // Increase delay to 300ms per company
                 .flatMap(company -> fetchCompanyJobs(company)
+                        .retryWhen(Retry.backoff(2, Duration.ofSeconds(2))
+                                .filter(e -> e.getMessage() != null && e.getMessage().contains("429")))
                         .doOnError(e -> {
                             // Avoid log noise for 404s (companies that likely moved ATS)
                             if (e.getMessage() != null && e.getMessage().contains("404")) {
@@ -66,7 +68,7 @@ public abstract class AbstractJobSource implements JobSource {
                             metrics.incrementFetchFailures(getName());
                         })
                         .onErrorResume(e -> Mono.just(List.of()))
-                        .flatMapMany(Flux::fromIterable), 10) // Reduced concurrency to be a good citizen
+                        .flatMapMany(Flux::fromIterable), 3) // Reduce concurrency to 3
                 .doOnNext(job -> metrics.incrementJobsDiscovered(getName()));
     }
 

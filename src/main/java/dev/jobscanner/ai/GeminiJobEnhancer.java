@@ -26,7 +26,7 @@ import java.util.Objects;
 public class GeminiJobEnhancer implements JobEnhancer {
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
-    private static final String GEMINI_PATH = "/v1beta/models/%s:generateContent";
+    private static final String GEMINI_PATH = "/v1/models/%s:generateContent";
 
     private final WebClient webClient;
     private final String apiKey;
@@ -41,23 +41,28 @@ public class GeminiJobEnhancer implements JobEnhancer {
                 .baseUrl(GEMINI_BASE_URL)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
-        log.info("Gemini AI Enhancement enabled with model: {}", model);
+
+        if (apiKey == null || apiKey.isBlank()) {
+            log.warn("Gemini API Key is missing! AI enhancement will fail.");
+        } else {
+            log.info("Gemini AI Enhancement enabled with model: {} (Key present)", model);
+        }
     }
 
     @Override
     public Mono<Job> enhance(Job job) {
-        if (job.getDescription() == null || job.getDescription().isBlank()) {
+        if (job.getDescription() == null || job.getDescription().isBlank() || apiKey == null || apiKey.isBlank()) {
             return Mono.just(job);
         }
 
         String prompt = buildPrompt(job);
         GeminiRequest request = buildRequest(prompt);
 
+        // Using a more explicit URI string construction to avoid path manipulation issues
+        String uri = String.format(GEMINI_PATH, model) + "?key=" + apiKey;
+
         return webClient.post()
-                .uri(uriBuilder -> uriBuilder
-                        .path(String.format(GEMINI_PATH, model))
-                        .queryParam("key", apiKey)
-                        .build())
+                .uri(uri)
                 .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                 .bodyValue(Objects.requireNonNull(request))
                 .retrieve()
