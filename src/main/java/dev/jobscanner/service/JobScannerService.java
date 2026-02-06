@@ -89,18 +89,11 @@ public class JobScannerService {
                         return Mono.just(List.<Job>of());
                     }
 
-                    // Limit to top X jobs to respect AI daily limits
-                    List<Job> limitedJobs = qualifiedJobs.stream()
-                            .limit(maxAiJobs)
-                            .toList();
-
-                    if (limitedJobs.size() < qualifiedJobs.size()) {
-                        log.info("Limiting AI analysis to top {} jobs (out of {}) due to configuration limit",
-                                maxAiJobs, qualifiedJobs.size());
-                    }
+                    // Process all qualified jobs without the 20-job limit
+                    log.info("Processing all {} qualified jobs through AI analysis...", qualifiedJobs.size());
 
                     // Enhance jobs with AI (if enabled)
-                    return enhanceJobsWithAI(limitedJobs)
+                    return enhanceJobsWithAI(qualifiedJobs)
                             .flatMap(enhancedJobs -> sendAndMarkJobs(enhancedJobs, allJobs.size()));
                 });
     }

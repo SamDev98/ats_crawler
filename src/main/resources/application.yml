@@ -82,10 +82,14 @@ scanner:
 app:
   ai:
     enabled: ${AI_ENABLED:false}
+    provider: ${AI_PROVIDER:gemini} # options: gemini, groq
     max-jobs: ${AI_MAX_JOBS:20}
     gemini:
       api-key: ${GEMINI_API_KEY:}
       model: ${GEMINI_MODEL:gemini-flash-latest}
+    groq:
+      api-key: ${GROQ_API_KEY:}
+      model: ${GROQ_MODEL:llama-3.3-70b-versatile}
 
 # Logging Configuration
 logging:

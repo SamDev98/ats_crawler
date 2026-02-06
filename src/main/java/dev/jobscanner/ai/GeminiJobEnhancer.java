@@ -23,7 +23,7 @@ import java.util.Objects;
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
+@ConditionalOnProperty(name = "app.ai.provider", havingValue = "gemini")
 public class GeminiJobEnhancer implements JobEnhancer {
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
