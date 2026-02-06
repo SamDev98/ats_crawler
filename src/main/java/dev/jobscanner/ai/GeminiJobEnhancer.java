@@ -175,6 +175,8 @@ public class GeminiJobEnhancer implements JobEnhancer {
                         : fullContent.substring(contentStart).trim();
 
                 batch.get(i).setAiAnalysis(analysis);
+                log.info("AI Analysis for '{}': {}", batch.get(i).getTitle(),
+                        analysis.substring(0, Math.min(analysis.length(), 100)).replace("\n", " ") + "...");
 
                 // Special check for removal filter in batch mode
                 if (analysis.contains("Veredito: DESCARTAR")) {
@@ -243,7 +245,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         return new GeminiRequest(List.of(
                 new GeminiRequest.Content(List.of(
                         new GeminiRequest.Part(prompt)))),
-                new GeminiRequest.GenerationConfig(0.3, 4096));
+                new GeminiRequest.GenerationConfig(0.3, 8192));
     }
 
     private String extractContent(GeminiResponse response) {

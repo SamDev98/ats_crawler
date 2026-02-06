@@ -181,8 +181,16 @@ public class JobScannerService {
     private Mono<List<Job>> sendAndMarkJobs(List<Job> qualifiedJobs, int totalFound) {
         if (dryRun) {
             log.info("DRY RUN - Would send email with {} jobs:", qualifiedJobs.size());
-            qualifiedJobs.forEach(job -> log.info("  - [{}] {} @ {} (score: {})",
-                    job.getSource(), job.getTitle(), job.getCompany(), job.getScore()));
+            qualifiedJobs.forEach(job -> {
+                log.info("  - [{}] {} @ {} (score: {})",
+                        job.getSource(), job.getTitle(), job.getCompany(), job.getScore());
+                if (job.getAiAnalysis() != null) {
+                    String aiInfo = job.getAiAnalysis().replace("\n", " ").trim();
+                    if (aiInfo.length() > 150)
+                        aiInfo = aiInfo.substring(0, 150) + "...";
+                    log.info("    AI Summary: {}", aiInfo);
+                }
+            });
             metrics.updateLastRunStats(totalFound, qualifiedJobs.size(), 0);
             return Mono.just(qualifiedJobs);
         }
