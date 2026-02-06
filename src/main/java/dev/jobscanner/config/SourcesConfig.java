@@ -19,7 +19,6 @@ public class SourcesConfig {
     private List<String> lever = new ArrayList<>();
     private List<String> greenhouse = new ArrayList<>();
     private List<String> ashby = new ArrayList<>();
-    private List<String> workable = new ArrayList<>();
     private List<String> smartrecruiters = new ArrayList<>();
     private List<String> recruitee = new ArrayList<>();
     private List<String> teamtailor = new ArrayList<>();
@@ -32,7 +31,7 @@ public class SourcesConfig {
      */
     public int getTotalCompanies() {
         return lever.size() + greenhouse.size() + ashby.size() +
-                workable.size() + smartrecruiters.size() +
+                smartrecruiters.size() +
                 recruitee.size() + teamtailor.size() +
                 bamboohr.size() + comeet.size() + homerun.size();
     }

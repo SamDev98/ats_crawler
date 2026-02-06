@@ -38,7 +38,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         this.apiKey = apiKey;
         // Fix for gemini-1.5-flash which is deprecated/404 in some regions in 2026
         this.model = "gemini-1.5-flash".equals(model) ? "gemini-flash-latest" : model;
-        
+
         this.webClient = WebClient.builder()
                 .baseUrl(GEMINI_BASE_URL)
                 .defaultHeader("Content-Type", "application/json")
@@ -95,10 +95,10 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
         log.info("Starting AI enhancement for {} jobs...", jobs.size());
 
-        // Process jobs sequentially with delay to respect rate limits
+        // Respect Gemini Free Tier limits (~15 RPM = 4s/req)
         return Mono.just(jobs)
                 .flatMapIterable(list -> list)
-                .delayElements(Duration.ofMillis(500)) // Rate limiting: ~2 req/sec
+                .delayElements(Duration.ofMillis(4500)) 
                 .flatMap(this::enhance, 1) // Sequential processing
                 .collectList()
                 .doOnSuccess(enhanced -> log.info("AI enhancement completed for {} jobs", enhanced.size()));
@@ -149,7 +149,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         return new GeminiRequest(List.of(
                 new GeminiRequest.Content(List.of(
                         new GeminiRequest.Part(prompt)))),
-                new GeminiRequest.GenerationConfig(0.3, 500));
+                new GeminiRequest.GenerationConfig(0.3, 1000));
     }
 
     private String extractContent(GeminiResponse response) {
