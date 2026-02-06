@@ -26,7 +26,7 @@ import java.util.Objects;
 public class GeminiJobEnhancer implements JobEnhancer {
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
-    private static final String GEMINI_PATH = "/v1beta/models/%s:generateContent";
+    private static final String GEMINI_PATH = "/v1/models/%s:generateContent";
 
     private final WebClient webClient;
     private final String apiKey;
@@ -34,10 +34,10 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
     public GeminiJobEnhancer(
             @Value("${app.ai.gemini.api-key}") String apiKey,
-            @Value("${app.ai.gemini.model:gemini-flash-latest}") String model) {
+            @Value("${app.ai.gemini.model:gemini-1.5-flash}") String model) {
         this.apiKey = apiKey;
-        // Fix for gemini-1.5-flash which is deprecated/404 in some regions in 2026
-        this.model = "gemini-1.5-flash".equals(model) ? "gemini-flash-latest" : model;
+        // Fix for model naming aliases
+        this.model = model.equals("gemini-1.5-flash") ? "gemini-1.5-flash" : model;
 
         this.webClient = WebClient.builder()
                 .baseUrl(GEMINI_BASE_URL)
@@ -47,7 +47,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("Gemini API Key is missing! AI enhancement will fail.");
         } else {
-            log.info("Gemini AI Enhancement enabled with model: {} (Key present)", this.model);
+            log.info("Gemini AI Enhancement enabled with model: {} (v1 endpoint)", this.model);
         }
     }
 
@@ -60,8 +60,6 @@ public class GeminiJobEnhancer implements JobEnhancer {
         String prompt = buildPrompt(job);
         GeminiRequest request = buildRequest(prompt);
 
-        // Using a more explicit URI string construction to avoid path manipulation
-        // issues
         String uri = String.format(GEMINI_PATH, model) + "?key=" + apiKey;
 
         return webClient.post()
@@ -70,9 +68,11 @@ public class GeminiJobEnhancer implements JobEnhancer {
                 .bodyValue(Objects.requireNonNull(request))
                 .retrieve()
                 .bodyToMono(GeminiResponse.class)
-                .timeout(Duration.ofSeconds(30))
-                .retryWhen(Retry.backoff(2, Duration.ofSeconds(1))
-                        .filter(this::isRetryableError))
+                .timeout(Duration.ofSeconds(60))
+                .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
+                        .filter(this::isRetryableError)
+                        .doBeforeRetry(retrySignal -> log.info("Retrying AI enhancement for '{}' (Attempt {})", 
+                                job.getTitle(), retrySignal.totalRetries() + 1)))
                 .map(response -> {
                     String analysis = extractContent(response);
                     if (analysis != null && !analysis.isBlank()) {
@@ -82,7 +82,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
                     return job;
                 })
                 .onErrorResume(e -> {
-                    log.warn("AI enhancement failed for '{}': {}", job.getTitle(), e.getMessage());
+                    log.warn("AI enhancement permanent failure for '{}': {}", job.getTitle(), e.getMessage());
                     return Mono.just(job);
                 });
     }
@@ -93,12 +93,12 @@ public class GeminiJobEnhancer implements JobEnhancer {
             return Mono.just(jobs);
         }
 
-        log.info("Starting AI enhancement for {} jobs...", jobs.size());
+        log.info("Starting AI enhancement for {} jobs with 10s delay...", jobs.size());
 
-        // Respect Gemini Free Tier limits (~15 RPM = 4s/req)
+        // Respect Gemini Free Tier limits aggressively (15 RPM = 4s/req, use 10s to be safe)
         return Mono.just(jobs)
                 .flatMapIterable(list -> list)
-                .delayElements(Duration.ofMillis(4500)) 
+                .delayElements(Duration.ofSeconds(10)) 
                 .flatMap(this::enhance, 1) // Sequential processing
                 .collectList()
                 .doOnSuccess(enhanced -> log.info("AI enhancement completed for {} jobs", enhanced.size()));
@@ -114,9 +114,9 @@ public class GeminiJobEnhancer implements JobEnhancer {
         if (description == null)
             description = "";
 
-        // Truncate very long descriptions to stay within token limits
-        if (description.length() > 8000) {
-            description = description.substring(0, 8000) + "...";
+        // Truncate more aggressively to stay within token limits and reduce latency
+        if (description.length() > 4000) {
+            description = description.substring(0, 4000) + "...";
         }
 
         return String.format(
@@ -149,7 +149,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         return new GeminiRequest(List.of(
                 new GeminiRequest.Content(List.of(
                         new GeminiRequest.Part(prompt)))),
-                new GeminiRequest.GenerationConfig(0.3, 1000));
+                new GeminiRequest.GenerationConfig(0.3, 2048));
     }
 
     private String extractContent(GeminiResponse response) {
@@ -166,7 +166,8 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
         if (candidate.content() == null || candidate.content().parts() == null
                 || candidate.content().parts().isEmpty()) {
-            log.warn("Gemini candidate has no content parts. Finish reason: {}", candidate.finishReason());
+            log.warn("Gemini candidate has no content parts. Finish reason: {}. Full response: {}", 
+                candidate.finishReason(), response);
             return null;
         }
 
