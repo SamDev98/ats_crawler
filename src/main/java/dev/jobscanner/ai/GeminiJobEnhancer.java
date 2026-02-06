@@ -9,6 +9,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.retry.Retry;
 
@@ -26,7 +27,7 @@ import java.util.Objects;
 public class GeminiJobEnhancer implements JobEnhancer {
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
-    private static final String GEMINI_PATH = "/v1/models/%s:generateContent";
+    private static final String GEMINI_PATH = "/v1beta/models/%s:generateContent";
 
     private final WebClient webClient;
     private final String apiKey;
@@ -36,7 +37,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
             @Value("${app.ai.gemini.api-key}") String apiKey,
             @Value("${app.ai.gemini.model:gemini-1.5-flash}") String model) {
         this.apiKey = apiKey;
-        // Fix for model naming aliases
+        // gemini-flash-latest works best with v1beta
         this.model = model.equals("gemini-1.5-flash") ? "gemini-1.5-flash" : model;
 
         this.webClient = WebClient.builder()
@@ -93,15 +94,104 @@ public class GeminiJobEnhancer implements JobEnhancer {
             return Mono.just(jobs);
         }
 
-        log.info("Starting AI enhancement for {} jobs with 10s delay...", jobs.size());
+        log.info("Starting AI enhancement for {} jobs using batching to respect limits (20 RPD/5 RPM)...", jobs.size());
 
-        // Respect Gemini Free Tier limits aggressively (15 RPM = 4s/req, use 10s to be safe)
-        return Mono.just(jobs)
+        // Batch size of 4 to stay well within token limits and reduce request count
+        int batchSize = 4;
+        
+        return Flux.fromIterable(partitionList(jobs, batchSize))
+                .delayElements(Duration.ofSeconds(20)) // 20s between batches = 3 RPM
+                .flatMap(this::enhanceBatch, 1) // Sequential batch processing
                 .flatMapIterable(list -> list)
-                .delayElements(Duration.ofSeconds(10)) 
-                .flatMap(this::enhance, 1) // Sequential processing
                 .collectList()
                 .doOnSuccess(enhanced -> log.info("AI enhancement completed for {} jobs", enhanced.size()));
+    }
+
+    private Mono<List<Job>> enhanceBatch(List<Job> batch) {
+        if (batch.isEmpty()) return Mono.just(batch);
+        if (batch.size() == 1) return enhance(batch.get(0)).map(List::of);
+
+        log.info("Processing batch of {} jobs...", batch.size());
+        
+        StringBuilder compositePrompt = new StringBuilder();
+        compositePrompt.append("Você é um recrutador técnico especialista em Java. Analise as vagas abaixo e forneça um parecer CONCISO para cada uma.\n\n");
+        
+        for (int i = 0; i < batch.size(); i++) {
+            Job job = batch.get(i);
+            compositePrompt.append(String.format("--- VAGA ID: %d ---\n", i));
+            compositePrompt.append(String.format("Título: %s\nEmpresa: %s\nLocalização: %s\nDescrição:\n%s\n\n",
+                    job.getTitle(), job.getCompany(), job.getLocation(), 
+                    truncateDescription(job.getDescription())));
+        }
+
+        compositePrompt.append("""
+                Para CADA VAGA acima, responda EXATAMENTE neste formato, mantendo o ID da vaga (Siga o formato abaixo rigorosamente e sem formatação markdown no ID):
+                
+                ###RESPOSTA ID: [ID]###
+                Veredito: [EXCELENTE / BOM / POUCO RELEVANTE / DESCARTAR]
+                Score IA: [0-100]
+                Stack: [Lista curta de tecnologias principais]
+                Nível: [Senior/Mid/Lead/Staff]
+                Match: [Explique em 2 frases curtas por que esta vaga encaixa ou não no perfil de Java Developer]
+                Red Flags: [Qualquer ponto impeditivo ou negativo]
+                """);
+
+        GeminiRequest request = buildRequest(compositePrompt.toString());
+        String uri = String.format(GEMINI_PATH, model) + "?key=" + apiKey;
+
+        return webClient.post()
+                .uri(uri)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(request)
+                .retrieve()
+                .bodyToMono(GeminiResponse.class)
+                .timeout(Duration.ofSeconds(90))
+                .retryWhen(Retry.backoff(2, Duration.ofSeconds(5)).filter(this::isRetryableError))
+                .map(response -> {
+                    String fullContent = extractContent(response);
+                    if (fullContent != null) {
+                        parseBatchResponse(batch, fullContent);
+                    }
+                    return batch;
+                })
+                .onErrorResume(e -> {
+                    log.error("Batch AI enhancement failed: {}", e.getMessage());
+                    return Mono.just(batch); // Continue with original jobs on error
+                });
+    }
+
+    private void parseBatchResponse(List<Job> batch, String fullContent) {
+        for (int i = 0; i < batch.size(); i++) {
+            String marker = String.format("###RESPOSTA ID: %d###", i);
+            int start = fullContent.indexOf(marker);
+            if (start != -1) {
+                int contentStart = start + marker.length();
+                int nextMarker = fullContent.indexOf("###RESPOSTA ID:", contentStart);
+                String analysis = (nextMarker != -1) 
+                        ? fullContent.substring(contentStart, nextMarker).trim()
+                        : fullContent.substring(contentStart).trim();
+                
+                batch.get(i).setAiAnalysis(analysis);
+                
+                // Special check for removal filter in batch mode
+                if (analysis.contains("Veredito: DESCARTAR")) {
+                    batch.get(i).setAiAnalysis("REMOVE_JOB_IA_FILTER");
+                }
+            }
+        }
+    }
+
+    private String truncateDescription(String description) {
+        if (description == null) return "";
+        return description.length() > 3000 ? description.substring(0, 3000) + "..." : description;
+    }
+
+    private <T> List<List<T>> partitionList(List<T> list, int size) {
+        java.util.List<java.util.List<T>> partitions = new java.util.ArrayList<>();
+        for (int i = 0; i < list.size(); i += size) {
+            partitions.add(list.subList(i, Math.min(i + size, list.size())));
+        }
+        return partitions;
     }
 
     @Override
@@ -149,7 +239,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         return new GeminiRequest(List.of(
                 new GeminiRequest.Content(List.of(
                         new GeminiRequest.Part(prompt)))),
-                new GeminiRequest.GenerationConfig(0.3, 2048));
+                new GeminiRequest.GenerationConfig(0.3, 4096));
     }
 
     private String extractContent(GeminiResponse response) {
