@@ -82,6 +82,7 @@ scanner:
 app:
   ai:
     enabled: ${AI_ENABLED:false}
+    max-jobs: ${AI_MAX_JOBS:20}
     gemini:
       api-key: ${GEMINI_API_KEY:}
       model: ${GEMINI_MODEL:gemini-flash-latest}

@@ -35,10 +35,10 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
     public GeminiJobEnhancer(
             @Value("${app.ai.gemini.api-key}") String apiKey,
-            @Value("${app.ai.gemini.model:gemini-1.5-flash}") String model) {
+            @Value("${app.ai.gemini.model:gemini-flash-latest}") String model) {
         this.apiKey = apiKey;
-        // gemini-flash-latest works best with v1beta
-        this.model = model.equals("gemini-1.5-flash") ? "gemini-1.5-flash" : model;
+        // Fix for gemini-1.5-flash which is deprecated/404 in some regions in 2026
+        this.model = "gemini-1.5-flash".equals(model) ? "gemini-flash-latest" : model;
 
         this.webClient = WebClient.builder()
                 .baseUrl(GEMINI_BASE_URL)
@@ -48,7 +48,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("Gemini API Key is missing! AI enhancement will fail.");
         } else {
-            log.info("Gemini AI Enhancement enabled with model: {} (v1 endpoint)", this.model);
+            log.info("Gemini AI Enhancement enabled with model: {} (Key present)", this.model);
         }
     }
 
@@ -72,7 +72,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
                 .timeout(Duration.ofSeconds(60))
                 .retryWhen(Retry.backoff(3, Duration.ofSeconds(2))
                         .filter(this::isRetryableError)
-                        .doBeforeRetry(retrySignal -> log.info("Retrying AI enhancement for '{}' (Attempt {})", 
+                        .doBeforeRetry(retrySignal -> log.info("Retrying AI enhancement for '{}' (Attempt {})",
                                 job.getTitle(), retrySignal.totalRetries() + 1)))
                 .map(response -> {
                     String analysis = extractContent(response);
@@ -94,13 +94,12 @@ public class GeminiJobEnhancer implements JobEnhancer {
             return Mono.just(jobs);
         }
 
-        log.info("Starting AI enhancement for {} jobs using batching to respect limits (20 RPD/5 RPM)...", jobs.size());
+        log.info("Starting AI enhancement for {} jobs in a single batch...", jobs.size());
 
-        // Batch size of 4 to stay well within token limits and reduce request count
-        int batchSize = 4;
-        
+        // Increase batch size to process all jobs at once (up to 20)
+        int batchSize = 25;
+
         return Flux.fromIterable(partitionList(jobs, batchSize))
-                .delayElements(Duration.ofSeconds(20)) // 20s between batches = 3 RPM
                 .flatMap(this::enhanceBatch, 1) // Sequential batch processing
                 .flatMapIterable(list -> list)
                 .collectList()
@@ -108,33 +107,37 @@ public class GeminiJobEnhancer implements JobEnhancer {
     }
 
     private Mono<List<Job>> enhanceBatch(List<Job> batch) {
-        if (batch.isEmpty()) return Mono.just(batch);
-        if (batch.size() == 1) return enhance(batch.get(0)).map(List::of);
+        if (batch.isEmpty())
+            return Mono.just(batch);
+        if (batch.size() == 1)
+            return enhance(batch.get(0)).map(List::of);
 
         log.info("Processing batch of {} jobs...", batch.size());
-        
+
         StringBuilder compositePrompt = new StringBuilder();
-        compositePrompt.append("Você é um recrutador técnico especialista em Java. Analise as vagas abaixo e forneça um parecer CONCISO para cada uma.\n\n");
-        
+        compositePrompt.append(
+                "Você é um recrutador técnico especialista em Java. Analise as vagas abaixo e forneça um parecer CONCISO para cada uma.\n\n");
+
         for (int i = 0; i < batch.size(); i++) {
             Job job = batch.get(i);
             compositePrompt.append(String.format("--- VAGA ID: %d ---\n", i));
             compositePrompt.append(String.format("Título: %s\nEmpresa: %s\nLocalização: %s\nDescrição:\n%s\n\n",
-                    job.getTitle(), job.getCompany(), job.getLocation(), 
+                    job.getTitle(), job.getCompany(), job.getLocation(),
                     truncateDescription(job.getDescription())));
         }
 
-        compositePrompt.append("""
-                Para CADA VAGA acima, responda EXATAMENTE neste formato, mantendo o ID da vaga (Siga o formato abaixo rigorosamente e sem formatação markdown no ID):
-                
-                ###RESPOSTA ID: [ID]###
-                Veredito: [EXCELENTE / BOM / POUCO RELEVANTE / DESCARTAR]
-                Score IA: [0-100]
-                Stack: [Lista curta de tecnologias principais]
-                Nível: [Senior/Mid/Lead/Staff]
-                Match: [Explique em 2 frases curtas por que esta vaga encaixa ou não no perfil de Java Developer]
-                Red Flags: [Qualquer ponto impeditivo ou negativo]
-                """);
+        compositePrompt
+                .append("""
+                        Para CADA VAGA acima, responda EXATAMENTE neste formato, mantendo o ID da vaga (Siga o formato abaixo rigorosamente e sem formatação markdown no ID):
+
+                        ###RESPOSTA ID: [ID]###
+                        Veredito: [EXCELENTE / BOM / POUCO RELEVANTE / DESCARTAR]
+                        Score IA: [0-100]
+                        Stack: [Lista curta de tecnologias principais]
+                        Nível: [Senior/Mid/Lead/Staff]
+                        Match: [Explique em 2 frases curtas por que esta vaga encaixa ou não no perfil de Java Developer]
+                        Red Flags: [Qualquer ponto impeditivo ou negativo]
+                        """);
 
         GeminiRequest request = buildRequest(compositePrompt.toString());
         String uri = String.format(GEMINI_PATH, model) + "?key=" + apiKey;
@@ -145,7 +148,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
                 .bodyValue(request)
                 .retrieve()
                 .bodyToMono(GeminiResponse.class)
-                .timeout(Duration.ofSeconds(90))
+                .timeout(Duration.ofSeconds(180))
                 .retryWhen(Retry.backoff(2, Duration.ofSeconds(5)).filter(this::isRetryableError))
                 .map(response -> {
                     String fullContent = extractContent(response);
@@ -167,12 +170,12 @@ public class GeminiJobEnhancer implements JobEnhancer {
             if (start != -1) {
                 int contentStart = start + marker.length();
                 int nextMarker = fullContent.indexOf("###RESPOSTA ID:", contentStart);
-                String analysis = (nextMarker != -1) 
+                String analysis = (nextMarker != -1)
                         ? fullContent.substring(contentStart, nextMarker).trim()
                         : fullContent.substring(contentStart).trim();
-                
+
                 batch.get(i).setAiAnalysis(analysis);
-                
+
                 // Special check for removal filter in batch mode
                 if (analysis.contains("Veredito: DESCARTAR")) {
                     batch.get(i).setAiAnalysis("REMOVE_JOB_IA_FILTER");
@@ -182,7 +185,8 @@ public class GeminiJobEnhancer implements JobEnhancer {
     }
 
     private String truncateDescription(String description) {
-        if (description == null) return "";
+        if (description == null)
+            return "";
         return description.length() > 3000 ? description.substring(0, 3000) + "..." : description;
     }
 
@@ -256,8 +260,8 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
         if (candidate.content() == null || candidate.content().parts() == null
                 || candidate.content().parts().isEmpty()) {
-            log.warn("Gemini candidate has no content parts. Finish reason: {}. Full response: {}", 
-                candidate.finishReason(), response);
+            log.warn("Gemini candidate has no content parts. Finish reason: {}. Full response: {}",
+                    candidate.finishReason(), response);
             return null;
         }
 

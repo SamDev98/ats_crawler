@@ -38,6 +38,9 @@ public class JobScannerService {
     @Value("${scanner.dry-run:false}")
     private boolean dryRun;
 
+    @Value("${app.ai.max-jobs:20}")
+    private int maxAiJobs;
+
     /**
      * Execute the full job scanning pipeline.
      *
@@ -86,14 +89,14 @@ public class JobScannerService {
                         return Mono.just(List.<Job>of());
                     }
 
-                    // Limit to top 20 jobs to respect AI daily limits (20 RPD)
+                    // Limit to top X jobs to respect AI daily limits
                     List<Job> limitedJobs = qualifiedJobs.stream()
-                            .limit(20)
+                            .limit(maxAiJobs)
                             .toList();
-                    
+
                     if (limitedJobs.size() < qualifiedJobs.size()) {
-                        log.info("Limiting AI analysis to top 20 jobs (out of {}) due to API daily limits", 
-                                qualifiedJobs.size());
+                        log.info("Limiting AI analysis to top {} jobs (out of {}) due to configuration limit",
+                                maxAiJobs, qualifiedJobs.size());
                     }
 
                     // Enhance jobs with AI (if enabled)
