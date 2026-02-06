@@ -52,13 +52,21 @@ public abstract class AbstractJobSource implements JobSource {
         log.info("Fetching jobs from {} ({} companies)", getName(), companies.size());
 
         return Flux.fromIterable(companies)
+                .delayElements(Duration.ofMillis(100)) // Add 100ms delay between companies to avoid 429s (Rate
+                                                       // Limiting)
                 .flatMap(company -> fetchCompanyJobs(company)
                         .doOnError(e -> {
-                            log.warn("{} - {} failed: {}", getName(), company, e.getMessage());
+                            // Avoid log noise for 404s (companies that likely moved ATS)
+                            if (e.getMessage() != null && e.getMessage().contains("404")) {
+                                log.debug("{} - {} likely moved or changed ATS: {}", getName(), company,
+                                        e.getMessage());
+                            } else {
+                                log.warn("{} - {} failed: {}", getName(), company, e.getMessage());
+                            }
                             metrics.incrementFetchFailures(getName());
                         })
                         .onErrorResume(e -> Mono.just(List.of()))
-                        .flatMapMany(Flux::fromIterable), 20) // 20 concurrent requests
+                        .flatMapMany(Flux::fromIterable), 10) // Reduced concurrency to be a good citizen
                 .doOnNext(job -> metrics.incrementJobsDiscovered(getName()));
     }
 
