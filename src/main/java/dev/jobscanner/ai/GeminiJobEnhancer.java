@@ -26,7 +26,7 @@ import java.util.Objects;
 public class GeminiJobEnhancer implements JobEnhancer {
 
     private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
-    private static final String GEMINI_PATH = "/v1/models/%s:generateContent";
+    private static final String GEMINI_PATH = "/v1beta/models/%s:generateContent";
 
     private final WebClient webClient;
     private final String apiKey;
@@ -58,7 +58,8 @@ public class GeminiJobEnhancer implements JobEnhancer {
         String prompt = buildPrompt(job);
         GeminiRequest request = buildRequest(prompt);
 
-        // Using a more explicit URI string construction to avoid path manipulation issues
+        // Using a more explicit URI string construction to avoid path manipulation
+        // issues
         String uri = String.format(GEMINI_PATH, model) + "?key=" + apiKey;
 
         return webClient.post()
@@ -151,13 +152,22 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
     private String extractContent(GeminiResponse response) {
         if (response == null || response.candidates() == null || response.candidates().isEmpty()) {
+            log.warn("Gemini returned no candidates or null response");
             return null;
         }
+
         var candidate = response.candidates().get(0);
+
+        if (candidate.finishReason() != null && !candidate.finishReason().equals("STOP")) {
+            log.warn("Gemini finish reason: {}", candidate.finishReason());
+        }
+
         if (candidate.content() == null || candidate.content().parts() == null
                 || candidate.content().parts().isEmpty()) {
+            log.warn("Gemini candidate has no content parts. Finish reason: {}", candidate.finishReason());
             return null;
         }
+
         String text = candidate.content().parts().get(0).text();
 
         // Se a IA indicar para descartar, retornamos um marcador especial para o
@@ -196,7 +206,9 @@ public class GeminiJobEnhancer implements JobEnhancer {
     @JsonIgnoreProperties(ignoreUnknown = true)
     record GeminiResponse(List<Candidate> candidates) {
         @JsonIgnoreProperties(ignoreUnknown = true)
-        record Candidate(Content content) {
+        record Candidate(
+                Content content,
+                String finishReason) {
             @JsonIgnoreProperties(ignoreUnknown = true)
             record Content(List<Part> parts) {
                 @JsonIgnoreProperties(ignoreUnknown = true)
