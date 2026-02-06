@@ -25,17 +25,20 @@ import java.util.Objects;
 @ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
 public class GeminiJobEnhancer implements JobEnhancer {
 
-    private static final String GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent";
+    private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
+    private static final String GEMINI_PATH = "/v1beta/models/%s:generateContent";
 
     private final WebClient webClient;
     private final String apiKey;
+    private final String model;
 
     public GeminiJobEnhancer(
             @Value("${app.ai.gemini.api-key}") String apiKey,
             @Value("${app.ai.gemini.model:gemini-1.5-flash}") String model) {
         this.apiKey = apiKey;
+        this.model = model;
         this.webClient = WebClient.builder()
-                .baseUrl(Objects.requireNonNull(String.format(GEMINI_API_URL, model)))
+                .baseUrl(GEMINI_BASE_URL)
                 .defaultHeader("Content-Type", "application/json")
                 .build();
         log.info("Gemini AI Enhancement enabled with model: {}", model);
@@ -51,7 +54,10 @@ public class GeminiJobEnhancer implements JobEnhancer {
         GeminiRequest request = buildRequest(prompt);
 
         return webClient.post()
-                .uri(uriBuilder -> uriBuilder.queryParam("key", apiKey).build())
+                .uri(uriBuilder -> uriBuilder
+                        .path(String.format(GEMINI_PATH, model))
+                        .queryParam("key", apiKey)
+                        .build())
                 .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
                 .bodyValue(Objects.requireNonNull(request))
                 .retrieve()
