@@ -34,9 +34,11 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
     public GeminiJobEnhancer(
             @Value("${app.ai.gemini.api-key}") String apiKey,
-            @Value("${app.ai.gemini.model:gemini-1.5-flash}") String model) {
+            @Value("${app.ai.gemini.model:gemini-flash-latest}") String model) {
         this.apiKey = apiKey;
-        this.model = model;
+        // Fix for gemini-1.5-flash which is deprecated/404 in some regions in 2026
+        this.model = "gemini-1.5-flash".equals(model) ? "gemini-flash-latest" : model;
+        
         this.webClient = WebClient.builder()
                 .baseUrl(GEMINI_BASE_URL)
                 .defaultHeader("Content-Type", "application/json")
@@ -45,7 +47,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         if (apiKey == null || apiKey.isBlank()) {
             log.warn("Gemini API Key is missing! AI enhancement will fail.");
         } else {
-            log.info("Gemini AI Enhancement enabled with model: {} (Key present)", model);
+            log.info("Gemini AI Enhancement enabled with model: {} (Key present)", this.model);
         }
     }
 
