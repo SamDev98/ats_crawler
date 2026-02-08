@@ -117,6 +117,11 @@ public class JobScannerService {
      * @return The job with score/eligibility set, or null if not eligible
      */
     private Job processJob(Job job) {
+        // Ensure URL is clean
+        if (job.getUrl() != null) {
+            job.setUrl(job.getUrl().trim());
+        }
+
         // Check eligibility
         EligibilityResult eligibility = rulesService.checkEligibility(job);
 

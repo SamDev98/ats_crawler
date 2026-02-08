@@ -217,7 +217,12 @@
         <article th:each="job : ${jobs}" class="job-card">
           <div class="job-header">
             <h2 style="margin: 0">
-              <a th:href="${job.url}" th:text="${job.title}" class="job-title"
+              <a
+                th:href="${job.url}"
+                th:text="${job.title}"
+                class="job-title"
+                target="_blank"
+                rel="noopener noreferrer"
                 >Job Title</a
               >
             </h2>
@@ -258,13 +263,17 @@
             </div>
           </div>
 
-          <a
-            th:href="${job.url}"
-            class="apply-btn"
-            th:aria-label="'Apply to ' + ${job.title} + ' at ' + ${job.company}"
-          >
-            View & Apply <span aria-hidden="true">→</span>
-          </a>
+          <div style="margin-top: 20px">
+            <a
+              th:href="${job.url}"
+              class="apply-btn"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="color: #ffffff !important"
+            >
+              View & Apply <span aria-hidden="true">→</span>
+            </a>
+          </div>
         </article>
       </main>
 
