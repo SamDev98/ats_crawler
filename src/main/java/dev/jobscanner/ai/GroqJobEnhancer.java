@@ -87,9 +87,9 @@ public class GroqJobEnhancer implements JobEnhancer {
 
     log.info("Starting Groq AI enhancement for {} jobs...", jobs.size());
 
-    // Limits for llama-3.3-70b-versatile (Free Tier): 
+    // Limits for llama-3.3-70b-versatile (Free Tier):
     // RPM=30, RPD=1K, TPM=12K, TPD=100K.
-    // Batch size reduced to 10 to stay well within TPM (Tokens Per Minute) 
+    // Batch size reduced to 10 to stay well within TPM (Tokens Per Minute)
     // as job descriptions can be large.
     int batchSize = 10;
 
@@ -107,7 +107,20 @@ public class GroqJobEnhancer implements JobEnhancer {
     log.info("Groq processing batch of {} jobs...", batch.size());
 
     StringBuilder compositePrompt = new StringBuilder();
-    compositePrompt.append("Você é um recrutador técnico Java. Analise as vagas e responda para cada uma.\n\n");
+    compositePrompt.append(
+        """
+            Você é um recrutador técnico especializado em encontrar vagas de Java para desenvolvedores brasileiros e da América Latina (LATAM).
+            Sua missão é analisar se a vaga é realmente para desenvolvedores Java (JVM) e se aceita candidatos remotos do Brasil ou LATAM.
+
+            Critérios de Descarte (Veredito: DESCARTAR):
+            1. Vagas que NÃO são de Java/JVM (ex: apenas Node, Go, Ruby, etc).
+            2. Vagas que exigem residência obrigatória em países específicos (ex: 'Must live in USA', 'Only UK candidates', 'No sponsorship available' em países que não aceitam remoto global).
+            3. Vagas de 'Senior' que na verdade pedem apenas 2-3 anos de experiência (seja criterioso).
+
+            Critérios de Sucesso:
+            - Vagas 'Anywhere', 'Remote Global', ou que mencionam 'Brazil'/'LATAM' devem receber Score IA alto.
+
+            """);
 
     for (int i = 0; i < batch.size(); i++) {
       Job job = batch.get(i);
@@ -121,8 +134,8 @@ public class GroqJobEnhancer implements JobEnhancer {
         ###RESPOSTA ID: [ID]###
         Veredito: [EXCELENTE / BOM / POUCO RELEVANTE / DESCARTAR]
         Score IA: [0-100]
-        Stack: [Tags]
-        Match: [2 frases curtas]
+        Stack: [Principais tecnologias]
+        Match: [Explique em 1 frase por que brasileiros/LATAM podem ou não se candidatar]
         """);
 
     GroqRequest request = buildRequest(compositePrompt.toString());
