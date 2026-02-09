@@ -33,6 +33,53 @@
       "type": "java.lang.String",
       "description": "Gemini model to use.",
       "defaultValue": "gemini-1.5-flash"
+    },
+    {
+      "name": "app.ai.gemini.base-url",
+      "type": "java.lang.String",
+      "description": "Gemini API base URL.",
+      "defaultValue": "https://generativelanguage.googleapis.com"
+    },
+    {
+      "name": "app.ai.gemini.path",
+      "type": "java.lang.String",
+      "description": "Gemini API generation path.",
+      "defaultValue": "/v1beta/models/%s:generateContent"
+    },
+    {
+      "name": "app.ai.provider",
+      "type": "java.lang.String",
+      "description": "AI provider to use (gemini or groq).",
+      "defaultValue": "gemini"
+    },
+    {
+      "name": "app.ai.max-jobs",
+      "type": "java.lang.Integer",
+      "description": "Maximum number of jobs to process via AI.",
+      "defaultValue": 20
+    },
+    {
+      "name": "app.ai.groq.api-key",
+      "type": "java.lang.String",
+      "description": "Groq Cloud API Key."
+    },
+    {
+      "name": "app.ai.groq.model",
+      "type": "java.lang.String",
+      "description": "Groq model to use.",
+      "defaultValue": "llama-3.3-70b-versatile"
+    },
+    {
+      "name": "app.ai.groq.base-url",
+      "type": "java.lang.String",
+      "description": "Groq API base URL.",
+      "defaultValue": "https://api.groq.com/openai/v1"
+    },
+    {
+      "name": "app.ai.groq.chat-path",
+      "type": "java.lang.String",
+      "description": "Groq API chat completions path.",
+      "defaultValue": "/chat/completions"
     }
   ]
 }

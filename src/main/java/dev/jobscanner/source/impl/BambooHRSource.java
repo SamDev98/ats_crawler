@@ -11,6 +11,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Component
@@ -40,7 +41,7 @@ public class BambooHRSource extends AbstractJobSource {
     String url = String.format(API_URL_TEMPLATE, company);
 
     return webClient.get()
-        .uri(url)
+        .uri(Objects.requireNonNull(url))
         .header("X-Requested-With", "XMLHttpRequest")
         .header("Referer", "https://" + company + ".bamboohr.com/jobs/")
         .retrieve()

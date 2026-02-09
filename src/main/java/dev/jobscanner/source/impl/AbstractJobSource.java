@@ -15,6 +15,7 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 public abstract class AbstractJobSource implements JobSource {
@@ -28,7 +29,7 @@ public abstract class AbstractJobSource implements JobSource {
 
         this.webClient = webClientBuilder
                 .codecs(config -> config.defaultCodecs().maxInMemorySize(10 * 1024 * 1024))
-                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .clientConnector(new ReactorClientHttpConnector(Objects.requireNonNull(httpClient)))
                 .defaultHeader("User-Agent",
                         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
                 .defaultHeader("Accept", "application/json, text/plain, */*")

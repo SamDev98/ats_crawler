@@ -5,7 +5,6 @@ import dev.jobscanner.model.Job;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
@@ -25,21 +24,22 @@ import java.util.Objects;
 @ConditionalOnProperty(name = "app.ai.provider", havingValue = "groq")
 public class GroqJobEnhancer implements JobEnhancer {
 
-  private static final String GROQ_BASE_URL = "https://api.groq.com/openai/v1";
-  private static final String CHAT_PATH = "/chat/completions";
-
   private final WebClient webClient;
   private final String apiKey;
   private final String model;
+  private final String chatPath;
 
   public GroqJobEnhancer(
       @Value("${app.ai.groq.api-key}") String apiKey,
-      @Value("${app.ai.groq.model:llama-3.3-70b-versatile}") String model) {
+      @Value("${app.ai.groq.model:llama-3.3-70b-versatile}") String model,
+      @Value("${app.ai.groq.base-url:https://api.groq.com/openai/v1}") String baseUrl,
+      @Value("${app.ai.groq.chat-path:/chat/completions}") String chatPath) {
 
     this.apiKey = apiKey;
     this.model = model;
+    this.chatPath = Objects.requireNonNull(chatPath);
     this.webClient = WebClient.builder()
-        .baseUrl(GROQ_BASE_URL)
+        .baseUrl(Objects.requireNonNull(baseUrl))
         .defaultHeader("Authorization", "Bearer " + apiKey)
         .defaultHeader("Content-Type", "application/json")
         .build();
@@ -61,8 +61,8 @@ public class GroqJobEnhancer implements JobEnhancer {
     GroqRequest request = buildRequest(prompt);
 
     return webClient.post()
-        .uri(CHAT_PATH)
-        .bodyValue(request)
+        .uri(Objects.requireNonNull(chatPath))
+        .bodyValue(Objects.requireNonNull(request))
         .retrieve()
         .bodyToMono(GroqResponse.class)
         .timeout(Duration.ofSeconds(30))
@@ -124,8 +124,8 @@ public class GroqJobEnhancer implements JobEnhancer {
 
     for (int i = 0; i < batch.size(); i++) {
       Job job = batch.get(i);
-      compositePrompt.append(String.format("###RESPOSTA ID: %d###\n", i));
-      compositePrompt.append(String.format("Vaga: %s @ %s\nDescrição: %s\n\n",
+      compositePrompt.append(String.format("###RESPOSTA ID: %d###%n", i));
+      compositePrompt.append(String.format("Vaga: %s @ %s%nDescrição: %s%n%n",
           job.getTitle(), job.getCompany(), truncateDescription(job.getDescription())));
     }
 
@@ -141,8 +141,8 @@ public class GroqJobEnhancer implements JobEnhancer {
     GroqRequest request = buildRequest(compositePrompt.toString());
 
     return webClient.post()
-        .uri(CHAT_PATH)
-        .bodyValue(request)
+        .uri(Objects.requireNonNull(chatPath))
+        .bodyValue(Objects.requireNonNull(request))
         .retrieve()
         .onStatus(status -> status.is4xxClientError() || status.is5xxServerError(),
             clientResponse -> clientResponse.bodyToMono(String.class)

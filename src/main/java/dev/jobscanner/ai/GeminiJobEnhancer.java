@@ -26,22 +26,23 @@ import java.util.Objects;
 @ConditionalOnProperty(name = "app.ai.provider", havingValue = "gemini")
 public class GeminiJobEnhancer implements JobEnhancer {
 
-    private static final String GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
-    private static final String GEMINI_PATH = "/v1beta/models/%s:generateContent";
-
     private final WebClient webClient;
     private final String apiKey;
     private final String model;
+    private final String geminiPath;
 
     public GeminiJobEnhancer(
             @Value("${app.ai.gemini.api-key}") String apiKey,
-            @Value("${app.ai.gemini.model:gemini-flash-latest}") String model) {
+            @Value("${app.ai.gemini.model:gemini-flash-latest}") String model,
+            @Value("${app.ai.gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
+            @Value("${app.ai.gemini.path:/v1beta/models/%s:generateContent}") String geminiPath) {
         this.apiKey = apiKey;
         // Fix for gemini-1.5-flash which is deprecated/404 in some regions in 2026
         this.model = "gemini-1.5-flash".equals(model) ? "gemini-flash-latest" : model;
+        this.geminiPath = Objects.requireNonNull(geminiPath);
 
         this.webClient = WebClient.builder()
-                .baseUrl(GEMINI_BASE_URL)
+                .baseUrl(Objects.requireNonNull(baseUrl))
                 .defaultHeader("Content-Type", "application/json")
                 .build();
 
@@ -61,7 +62,7 @@ public class GeminiJobEnhancer implements JobEnhancer {
         String prompt = buildPrompt(job);
         GeminiRequest request = buildRequest(prompt);
 
-        String uri = String.format(GEMINI_PATH, model) + "?key=" + apiKey;
+        String uri = String.format(geminiPath, model) + "?key=" + apiKey;
 
         return webClient.post()
                 .uri(uri)
@@ -120,8 +121,8 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
         for (int i = 0; i < batch.size(); i++) {
             Job job = batch.get(i);
-            compositePrompt.append(String.format("--- VAGA ID: %d ---\n", i));
-            compositePrompt.append(String.format("Título: %s\nEmpresa: %s\nLocalização: %s\nDescrição:\n%s\n\n",
+            compositePrompt.append(String.format("--- VAGA ID: %d ---%n", i));
+            compositePrompt.append(String.format("Título: %s%nEmpresa: %s%nLocalização: %s%nDescrição:%n%s%n%n",
                     job.getTitle(), job.getCompany(), job.getLocation(),
                     truncateDescription(job.getDescription())));
         }
@@ -140,12 +141,12 @@ public class GeminiJobEnhancer implements JobEnhancer {
                         """);
 
         GeminiRequest request = buildRequest(compositePrompt.toString());
-        String uri = String.format(GEMINI_PATH, model) + "?key=" + apiKey;
+        String uri = String.format(geminiPath, model) + "?key=" + apiKey;
 
         return webClient.post()
                 .uri(uri)
-                .contentType(MediaType.APPLICATION_JSON)
-                .bodyValue(request)
+                .contentType(Objects.requireNonNull(MediaType.APPLICATION_JSON))
+                .bodyValue(Objects.requireNonNull(request))
                 .retrieve()
                 .bodyToMono(GeminiResponse.class)
                 .timeout(Duration.ofSeconds(180))

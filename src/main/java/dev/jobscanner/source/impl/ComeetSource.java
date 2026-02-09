@@ -11,16 +11,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @Component
 public class ComeetSource extends AbstractJobSource {
 
-  // Comeet pattern:
-  // https://www.comeet.co/careers-api/2.0/company/{uid}/positions?token={token}
   // We expect company config to be "uid:token"
   private static final String API_URL = "https://www.comeet.co/careers-api/2.0/company/%s/positions?token=%s";
 

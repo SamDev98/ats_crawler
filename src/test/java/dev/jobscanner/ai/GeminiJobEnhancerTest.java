@@ -219,20 +219,7 @@ class GeminiJobEnhancerTest {
      */
     static class TestableGeminiJobEnhancer extends GeminiJobEnhancer {
         TestableGeminiJobEnhancer(String apiKey, String model, String baseUrl) {
-            super(apiKey, model);
-            // Use reflection to replace the webClient with one pointing to mock server
-            try {
-                var webClientField = GeminiJobEnhancer.class.getDeclaredField("webClient");
-                webClientField.setAccessible(true);
-                String nonNullBaseUrl = baseUrl != null ? baseUrl : "http://localhost";
-                var newWebClient = org.springframework.web.reactive.function.client.WebClient.builder()
-                        .baseUrl(nonNullBaseUrl)
-                        .defaultHeader("Content-Type", "application/json")
-                        .build();
-                webClientField.set(this, newWebClient);
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
+            super(apiKey, model, baseUrl, "/v1beta/models/%s:generateContent");
         }
     }
 }
