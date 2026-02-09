@@ -82,14 +82,18 @@ scanner:
 app:
   ai:
     enabled: ${AI_ENABLED:false}
-    provider: ${AI_PROVIDER:gemini} # options: gemini, groq
+    provider: ${AI_PROVIDER:gemini} # options: gemini, groq, openrouter
     max-jobs: ${AI_MAX_JOBS:20}
     gemini:
       api-key: ${GEMINI_API_KEY:}
-      model: ${GEMINI_MODEL:gemini-flash-latest}
+      model: ${GEMINI_MODEL:gemini-2.0-flash-exp}
     groq:
       api-key: ${GROQ_API_KEY:}
       model: ${GROQ_MODEL:llama-3.3-70b-versatile}
+    openrouter:
+      api-key: ${OPENROUTER_API_KEY:}
+      model: ${OPENROUTER_MODEL:google/gemini-2.0-flash-001}
+      base-url: https://openrouter.ai/api/v1
 
 # Logging Configuration
 logging:

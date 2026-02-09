@@ -49,7 +49,7 @@
     {
       "name": "app.ai.provider",
       "type": "java.lang.String",
-      "description": "AI provider to use (gemini or groq).",
+      "description": "AI provider to use (gemini, groq or openrouter).",
       "defaultValue": "gemini"
     },
     {
@@ -80,6 +80,23 @@
       "type": "java.lang.String",
       "description": "Groq API chat completions path.",
       "defaultValue": "/chat/completions"
+    },
+    {
+      "name": "app.ai.openrouter.api-key",
+      "type": "java.lang.String",
+      "description": "OpenRouter API Key."
+    },
+    {
+      "name": "app.ai.openrouter.model",
+      "type": "java.lang.String",
+      "description": "OpenRouter model to use (e.g., google/gemini-2.0-flash-001).",
+      "defaultValue": "google/gemini-2.0-flash-001"
+    },
+    {
+      "name": "app.ai.openrouter.base-url",
+      "type": "java.lang.String",
+      "description": "OpenRouter API base URL.",
+      "defaultValue": "https://openrouter.ai/api/v1"
     }
   ]
 }

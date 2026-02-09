@@ -33,12 +33,11 @@ public class GeminiJobEnhancer implements JobEnhancer {
 
     public GeminiJobEnhancer(
             @Value("${app.ai.gemini.api-key}") String apiKey,
-            @Value("${app.ai.gemini.model:gemini-flash-latest}") String model,
+            @Value("${app.ai.gemini.model:gemini-2.0-flash-exp}") String model,
             @Value("${app.ai.gemini.base-url:https://generativelanguage.googleapis.com}") String baseUrl,
             @Value("${app.ai.gemini.path:/v1beta/models/%s:generateContent}") String geminiPath) {
         this.apiKey = apiKey;
-        // Fix for gemini-1.5-flash which is deprecated/404 in some regions in 2026
-        this.model = "gemini-1.5-flash".equals(model) ? "gemini-flash-latest" : model;
+        this.model = model;
         this.geminiPath = Objects.requireNonNull(geminiPath);
 
         this.webClient = WebClient.builder()
