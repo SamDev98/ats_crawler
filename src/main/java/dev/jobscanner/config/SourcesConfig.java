@@ -20,10 +20,6 @@ public class SourcesConfig {
     private List<String> greenhouse = new ArrayList<>();
     private List<String> ashby = new ArrayList<>();
     private List<String> smartrecruiters = new ArrayList<>();
-    private List<String> recruitee = new ArrayList<>();
-    private List<String> teamtailor = new ArrayList<>();
-    private List<String> bamboohr = new ArrayList<>();
-    private List<String> comeet = new ArrayList<>();
     private List<String> homerun = new ArrayList<>();
 
     /**
@@ -31,8 +27,6 @@ public class SourcesConfig {
      */
     public int getTotalCompanies() {
         return lever.size() + greenhouse.size() + ashby.size() +
-                smartrecruiters.size() +
-                recruitee.size() + teamtailor.size() +
-                bamboohr.size() + comeet.size() + homerun.size();
+                smartrecruiters.size() + homerun.size();
     }
 }
