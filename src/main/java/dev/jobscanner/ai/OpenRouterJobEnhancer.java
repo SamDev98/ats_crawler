@@ -2,6 +2,7 @@ package dev.jobscanner.ai;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import dev.jobscanner.model.Job;
+import dev.jobscanner.config.UserProfile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,20 +24,23 @@ import java.util.Objects;
  */
 @Slf4j
 @Service
-@ConditionalOnProperty(name = "app.ai.provider", havingValue = "openrouter")
+@ConditionalOnProperty(name = "app.ai.enabled", havingValue = "true")
 public class OpenRouterJobEnhancer implements JobEnhancer {
 
   private final WebClient webClient;
   private final String apiKey;
   private final String model;
+  private final UserProfile userProfile;
 
   public OpenRouterJobEnhancer(
       @Value("${app.ai.openrouter.api-key}") String apiKey,
-      @Value("${app.ai.openrouter.model:google/gemini-2.0-flash-001}") String model,
-      @Value("${app.ai.openrouter.base-url:https://openrouter.ai/api/v1}") String baseUrl) {
+      @Value("${app.ai.openrouter.model:deepseek/deepseek-chat}") String model,
+      @Value("${app.ai.openrouter.base-url:https://openrouter.ai/api/v1}") String baseUrl,
+      UserProfile userProfile) {
 
     this.apiKey = apiKey;
     this.model = model;
+    this.userProfile = userProfile;
     this.webClient = WebClient.builder()
         .baseUrl(Objects.requireNonNull(baseUrl))
         .defaultHeader("Authorization", "Bearer " + apiKey)
@@ -148,7 +152,7 @@ public class OpenRouterJobEnhancer implements JobEnhancer {
             clientResponse -> clientResponse.bodyToMono(String.class)
                 .flatMap(errorBody -> {
                   log.error("OpenRouter API Error: {}", errorBody);
-                  return Mono.error(new RuntimeException("OpenRouter error: " + errorBody));
+                  return Mono.error(new IllegalStateException("OpenRouter error: " + errorBody));
                 }))
         .bodyToMono(OpenRouterResponse.class)
         .map(response -> {
@@ -184,9 +188,14 @@ public class OpenRouterJobEnhancer implements JobEnhancer {
   }
 
   private String buildPrompt(Job job) {
+    String technologies = userProfile.getTargetTechnologies() != null
+        ? String.join(", ", userProfile.getTargetTechnologies())
+        : "Java, Spring Boot";
+    String seniority = userProfile.getExperienceLevel() != null ? userProfile.getExperienceLevel() : "Senior";
+
     return String.format(
         """
-            Você é um recrutador técnico especialista em Java e contratação internacional (B2B/Contractor) para brasileiros/LATAM.
+            Você é um recrutador técnico especialista em %s nível %s e contratação internacional (B2B/Contractor) para brasileiros/LATAM.
             Analise rigorosamente esta vaga para determinar a elegibilidade de quem mora no Brasil ou América Latina.
 
             Título: %s
@@ -207,6 +216,8 @@ public class OpenRouterJobEnhancer implements JobEnhancer {
             Stack: [Tecnologias principais]
             Match: [Explique por que é ou não viável para brasileiros/LATAM aplicar]
             """,
+        technologies,
+        seniority,
         job.getTitle() != null ? job.getTitle() : "N/A",
         job.getCompany() != null ? job.getCompany() : "N/A",
         job.getLocation() != null ? job.getLocation() : "Remoto",
