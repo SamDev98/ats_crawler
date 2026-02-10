@@ -186,23 +186,26 @@ public class OpenRouterJobEnhancer implements JobEnhancer {
   private String buildPrompt(Job job) {
     return String.format(
         """
-            Você é um recrutador técnico especialista em Java e contratação internacional para brasileiros/LATAM.
-            Analise rigorosamente esta vaga:
+            Você é um recrutador técnico especialista em Java e contratação internacional (B2B/Contractor) para brasileiros/LATAM.
+            Analise rigorosamente esta vaga para determinar a elegibilidade de quem mora no Brasil ou América Latina.
+
             Título: %s
             Empresa: %s
             Local: %s
             Descrição: %s
 
-            Instruções Mandatórias:
-            1. Veredito: DESCARTAR se NÃO for Java/JVM ou se EXIGIR residência obrigatória (ex: USA/Europe Only).
-            2. Veredito: EXCELENTE se mencionar explicitamente 'Brazil', 'LATAM', 'Global Remote' ou pagamento em USD.
-            3. Responda em PORTUGUÊS.
+            REGRAS DE OURO PARA O VEREDITO:
+            1. DESCARTAR: Se o local for restritivo (ex: 'Must reside in US', 'No C2C', 'Europe Only', 'Work from Poland only'). Se NÃO menciona trabalho remoto global ou LATAM.
+            2. POUCO RELEVANTE: Se a vaga for Java mas o remoto for apenas dentro de um país que não seja o Brasil/LATAM. Se o texto for ambíguo sobre contratação internacional.
+            3. BOM / EXCELENTE: Se mencionar 'Remote Global', 'Anywhere', 'Brazil', 'LATAM', ou se a empresa já é conhecida por contratar brasileiros (ex: Deel, Remote, CI&T, etc).
 
-            Formato da Resposta:
+            IMPORTANTE: Se você não encontrar evidências claras de que um brasileiro pode aplicar morando no Brasil, o veredito deve ser DESCARTAR ou POUCO RELEVANTE.
+
+            Formato da Resposta em PORTUGUÊS:
             Veredito: [EXCELENTE / BOM / POUCO RELEVANTE / DESCARTAR]
             Score IA: [0-100]
-            Stack: [Lista curta]
-            Match: [Explique em 1 frase por que brasileiros podem ou não se candidatar]
+            Stack: [Tecnologias principais]
+            Match: [Explique por que é ou não viável para brasileiros/LATAM aplicar]
             """,
         job.getTitle() != null ? job.getTitle() : "N/A",
         job.getCompany() != null ? job.getCompany() : "N/A",

@@ -171,8 +171,15 @@ public class JobScannerService {
         log.info("Enhancing {} jobs with AI analysis...", jobs.size());
         return jobEnhancer.enhanceAll(jobs)
                 .map(enhancedJobs -> enhancedJobs.stream()
-                        .filter(job -> job.getAiAnalysis() == null
-                                || !job.getAiAnalysis().contains("REMOVE_JOB_IA_FILTER"))
+                        .filter(job -> {
+                            if (job.getAiAnalysis() == null) return true;
+                            String analysis = job.getAiAnalysis();
+                            // Aggressive filtering: Remove if explicitly told to discard or if relevance is too low
+                            boolean shouldRemove = analysis.contains("REMOVE_JOB_IA_FILTER") 
+                                || analysis.contains("Veredito: DESCARTAR")
+                                || analysis.contains("Veredito: POUCO RELEVANTE");
+                            return !shouldRemove;
+                        })
                         .toList())
                 .doOnSuccess(enhanced -> log.info("AI enhancement completed. {} jobs remaining after IA filter.",
                         enhanced.size()))
