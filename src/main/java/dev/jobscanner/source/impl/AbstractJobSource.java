@@ -14,7 +14,6 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -85,7 +84,7 @@ public abstract class AbstractJobSource implements JobSource {
                         })
                         .onErrorResume(e -> Mono.just(List.of()))
                         .flatMapMany(Flux::fromIterable), 3) // Reduce concurrency to 3
-                .doOnTerminate(() -> logCleanupReport())
+                .doOnTerminate(this::logCleanupReport)
                 .doOnNext(job -> metrics.incrementJobsDiscovered(getName()));
     }
 
