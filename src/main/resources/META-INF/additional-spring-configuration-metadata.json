@@ -50,7 +50,7 @@
       "name": "app.ai.provider",
       "type": "java.lang.String",
       "description": "AI provider to use (gemini, groq or openrouter).",
-      "defaultValue": "gemini"
+      "defaultValue": "openrouter"
     },
     {
       "name": "app.ai.max-jobs",
@@ -90,7 +90,7 @@
       "name": "app.ai.openrouter.model",
       "type": "java.lang.String",
       "description": "OpenRouter model to use (e.g., google/gemini-2.0-flash-001).",
-      "defaultValue": "google/gemini-2.0-flash-001"
+      "defaultValue": "deepseek/deepseek-chat"
     },
     {
       "name": "app.ai.openrouter.base-url",

@@ -11,6 +11,11 @@ on:
         required: false
         default: false
         type: boolean
+      reset_db:
+        description: 'Limpar banco de dados (enviar todas as vagas novamente)'
+        required: false
+        default: false
+        type: boolean
 
 jobs:
   scan-jobs:
@@ -34,6 +39,7 @@ jobs:
         run: mkdir -p data
 
       - name: Download previous database
+        if: github.event.inputs.reset_db != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -45,8 +51,11 @@ jobs:
           EMAIL_USER: ${{ secrets.EMAIL_USER }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           AI_ENABLED: 'true'
+          AI_PROVIDER: 'openrouter' # Default to openrouter for DeepSeek
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
           SQLITE_PATH: ./data/jobs.db
         run: |

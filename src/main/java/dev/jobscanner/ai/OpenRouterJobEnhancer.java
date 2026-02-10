@@ -116,8 +116,9 @@ public class OpenRouterJobEnhancer implements JobEnhancer {
             2. Vagas que exigem residência obrigatória em países específicos (ex: 'Must live in USA', 'Only UK candidates').
             3. Vagas de 'Senior' que na verdade pedem apenas 2-3 anos de experiência.
 
-            Critérios de Sucesso:
-            - Vagas 'Anywhere', 'Remote Global', ou que mencionam 'Brazil'/'LATAM' devem receber Score IA alto.
+            Critérios de Sucesso (Score alto):
+            - Vagas 'Anywhere', 'Remote Global', ou que mencionam 'Brazil'/'LATAM'.
+            - Menção a pagamentos em 'USD', 'US Dollars' ou contratos 'B2B'.
 
             """);
 
@@ -184,8 +185,29 @@ public class OpenRouterJobEnhancer implements JobEnhancer {
 
   private String buildPrompt(Job job) {
     return String.format(
-        "Analise esta vaga de Java: %s na %s. Descrição: %s. Responda em Português com Veredito, Score e Match.",
-        job.getTitle(), job.getCompany(), truncateDescription(job.getDescription()));
+        """
+            Você é um recrutador técnico especialista em Java e contratação internacional para brasileiros/LATAM.
+            Analise rigorosamente esta vaga:
+            Título: %s
+            Empresa: %s
+            Local: %s
+            Descrição: %s
+
+            Instruções Mandatórias:
+            1. Veredito: DESCARTAR se NÃO for Java/JVM ou se EXIGIR residência obrigatória (ex: USA/Europe Only).
+            2. Veredito: EXCELENTE se mencionar explicitamente 'Brazil', 'LATAM', 'Global Remote' ou pagamento em USD.
+            3. Responda em PORTUGUÊS.
+
+            Formato da Resposta:
+            Veredito: [EXCELENTE / BOM / POUCO RELEVANTE / DESCARTAR]
+            Score IA: [0-100]
+            Stack: [Lista curta]
+            Match: [Explique em 1 frase por que brasileiros podem ou não se candidatar]
+            """,
+        job.getTitle() != null ? job.getTitle() : "N/A",
+        job.getCompany() != null ? job.getCompany() : "N/A",
+        job.getLocation() != null ? job.getLocation() : "Remoto",
+        truncateDescription(job.getDescription()));
   }
 
   private OpenRouterRequest buildRequest(String prompt) {
