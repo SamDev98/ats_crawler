@@ -1,11 +1,15 @@
 package dev.jobscanner.service;
 
 import dev.jobscanner.config.RulesConfig;
+import dev.jobscanner.config.UserProfile;
 import dev.jobscanner.model.Job;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.Map;
 import java.util.regex.Pattern;
 
 /**
@@ -17,6 +21,9 @@ import java.util.regex.Pattern;
 public class RulesService {
 
     private final RulesConfig rulesConfig;
+    private final UserProfile userProfile;
+
+    private static final Map<String, Pattern> PATTERN_CACHE = new ConcurrentHashMap<>();
 
     /**
      * Result of eligibility check.
@@ -26,8 +33,7 @@ public class RulesService {
             String blockReason,
             boolean isRemote,
             boolean isContract,
-            boolean isJavaRelated
-    ) {
+            boolean isJavaRelated) {
         public static EligibilityResult blocked(String reason) {
             return new EligibilityResult(false, reason, false, false, false);
         }
@@ -44,8 +50,12 @@ public class RulesService {
      * @return EligibilityResult with status and details
      */
     public EligibilityResult checkEligibility(Job job) {
-        String title = job.getTitle().toLowerCase();
-        String description = job.getDescription().toLowerCase();
+        if (job == null) {
+            return EligibilityResult.blocked("Null job object");
+        }
+
+        String title = (job.getTitle() != null) ? job.getTitle().toLowerCase() : "";
+        String description = (job.getDescription() != null) ? job.getDescription().toLowerCase() : "";
         String combined = title + " " + description;
 
         // Check for blocking terms
@@ -76,26 +86,37 @@ public class RulesService {
      * Check if the job is Java-related based on title or description.
      */
     private boolean isJavaRelated(String title, String description) {
-        // First, check if title contains Java terms (highest priority)
-        for (String javaTerm : rulesConfig.getJavaTerms()) {
-            if (containsWord(title, javaTerm.toLowerCase())) {
-                return true;
-            }
-        }
+        String titleLower = title.toLowerCase();
+        String descLower = description.toLowerCase();
 
-        // Then check description (but with stricter matching for "java")
-        if (containsWord(description, "java")) {
+        // 1. Check target technologies from profile.json
+        if (matchesTargetTech(titleLower, descLower)) {
             return true;
         }
 
-        // Check for specific frameworks in description
-        String[] frameworkTerms = {"spring boot", "springboot", "spring framework", "quarkus", "micronaut"};
-        for (String term : frameworkTerms) {
-            if (containsPhrase(description, term)) {
+        // 2. Check Java terms from rulesConfig in title
+        for (String javaTerm : rulesConfig.getJavaTerms()) {
+            if (containsWord(titleLower, javaTerm.toLowerCase())) {
                 return true;
             }
         }
 
+        // 3. Last fallback: check "java" word in description
+        return containsWord(descLower, "java");
+    }
+
+    private boolean matchesTargetTech(String title, String description) {
+        List<String> targetTech = userProfile.getTargetTechnologies();
+        if (targetTech == null || targetTech.isEmpty()) {
+            return false;
+        }
+
+        for (String tech : targetTech) {
+            String techLower = tech.toLowerCase();
+            if (containsPhrase(title, techLower) || containsPhrase(description, techLower)) {
+                return true;
+            }
+        }
         return false;
     }
 
@@ -127,15 +148,21 @@ public class RulesService {
      * Check if text contains a phrase (case-insensitive).
      */
     private boolean containsPhrase(String text, String phrase) {
-        return text.contains(phrase);
+        if (text == null || phrase == null)
+            return false;
+        return text.toLowerCase().contains(phrase.toLowerCase());
     }
 
     /**
      * Check if text contains a word with word boundaries.
      */
     private boolean containsWord(String text, String word) {
+        if (text == null || word == null || word.isBlank()) {
+            return false;
+        }
         // Use word boundaries to avoid matching "javascript" when looking for "java"
-        String pattern = "\\b" + Pattern.quote(word) + "\\b";
-        return Pattern.compile(pattern, Pattern.CASE_INSENSITIVE).matcher(text).find();
+        String regex = "\\b" + Pattern.quote(word.toLowerCase()) + "\\b";
+        Pattern pattern = PATTERN_CACHE.computeIfAbsent(regex, k -> Pattern.compile(k, Pattern.CASE_INSENSITIVE));
+        return pattern.matcher(text.toLowerCase()).find();
     }
 }

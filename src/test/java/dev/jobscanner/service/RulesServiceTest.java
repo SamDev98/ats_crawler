@@ -1,14 +1,18 @@
 package dev.jobscanner.service;
 
 import dev.jobscanner.config.RulesConfig;
+import dev.jobscanner.config.UserProfile;
 import dev.jobscanner.model.Job;
 import dev.jobscanner.service.RulesService.EligibilityResult;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +21,7 @@ class RulesServiceTest {
 
     private RulesService rulesService;
     private RulesConfig rulesConfig;
+    private UserProfile userProfile;
 
     @BeforeEach
     void setUp() {
@@ -25,12 +30,15 @@ class RulesServiceTest {
         rulesConfig.setRemoteIndicators(List.of("remote", "distributed", "global", "worldwide"));
         rulesConfig.setContractIndicators(List.of("contract", "contractor", "b2b", "c2c", "freelance"));
         rulesConfig.setJavaTerms(List.of("java", "java developer", "java engineer", "backend java"));
-        rulesService = new RulesService(rulesConfig);
+
+        userProfile = new UserProfile();
+        userProfile.setTargetTechnologies(new ArrayList<>());
+
+        rulesService = new RulesService(rulesConfig, userProfile);
     }
 
     private Job createJob(String title, String description) {
         return Job.builder()
-                .id("test-123")
                 .title(title)
                 .description(description)
                 .url("https://example.com/job")
@@ -68,7 +76,9 @@ class RulesServiceTest {
         @Test
         @DisplayName("Should accept job with Spring Boot in description")
         void shouldAcceptSpringBootInDescription() {
-            Job job = createJob("Backend Developer", "Building services with spring boot and microservices architecture.");
+            userProfile.setTargetTechnologies(List.of("Spring Boot"));
+            Job job = createJob("Backend Developer",
+                    "Building services with spring boot and microservices architecture.");
             EligibilityResult result = rulesService.checkEligibility(job);
 
             assertThat(result.eligible()).isTrue();
@@ -100,34 +110,18 @@ class RulesServiceTest {
     @DisplayName("Block terms detection")
     class BlockTermsTests {
 
-        @Test
-        @DisplayName("Should block US-only jobs")
-        void shouldBlockUsOnlyJobs() {
-            Job job = createJob("Java Developer", "Must be US only. Java and Spring Boot experience required.");
+        @ParameterizedTest(name = "Should block {1}")
+        @CsvSource({
+                "'Must be US only. Java and Spring Boot experience required.', 'us only'",
+                "'Must be us citizen or permanent resident. Java experience required.', 'us citizen'",
+                "'Security clearance required. Java and AWS experience.', 'security clearance'"
+        })
+        void shouldBlockSpecificTerms(String description, String expectedBlockReason) {
+            Job job = createJob("Java Developer", description);
             EligibilityResult result = rulesService.checkEligibility(job);
 
             assertThat(result.eligible()).isFalse();
-            assertThat(result.blockReason()).isEqualTo("us only");
-        }
-
-        @Test
-        @DisplayName("Should block jobs requiring US citizenship")
-        void shouldBlockUsCitizenshipJobs() {
-            Job job = createJob("Java Developer", "Must be us citizen or permanent resident. Java experience required.");
-            EligibilityResult result = rulesService.checkEligibility(job);
-
-            assertThat(result.eligible()).isFalse();
-            assertThat(result.blockReason()).isEqualTo("us citizen");
-        }
-
-        @Test
-        @DisplayName("Should block jobs requiring security clearance")
-        void shouldBlockSecurityClearanceJobs() {
-            Job job = createJob("Java Developer", "Security clearance required. Java and AWS experience.");
-            EligibilityResult result = rulesService.checkEligibility(job);
-
-            assertThat(result.eligible()).isFalse();
-            assertThat(result.blockReason()).isEqualTo("security clearance");
+            assertThat(result.blockReason()).isEqualTo(expectedBlockReason);
         }
     }
 
@@ -135,30 +129,14 @@ class RulesServiceTest {
     @DisplayName("Remote indicator detection")
     class RemoteIndicatorTests {
 
-        @Test
-        @DisplayName("Should detect remote indicator")
-        void shouldDetectRemoteIndicator() {
-            Job job = createJob("Java Developer - Remote", "This is a remote position. Java required.");
-            EligibilityResult result = rulesService.checkEligibility(job);
-
-            assertThat(result.eligible()).isTrue();
-            assertThat(result.isRemote()).isTrue();
-        }
-
-        @Test
-        @DisplayName("Should detect global indicator")
-        void shouldDetectGlobalIndicator() {
-            Job job = createJob("Java Developer", "We hire globally. Looking for Java expertise.");
-            EligibilityResult result = rulesService.checkEligibility(job);
-
-            assertThat(result.eligible()).isTrue();
-            assertThat(result.isRemote()).isTrue();
-        }
-
-        @Test
-        @DisplayName("Should detect worldwide indicator")
-        void shouldDetectWorldwideIndicator() {
-            Job job = createJob("Java Developer", "Worldwide candidates welcome. Java and microservices.");
+        @ParameterizedTest(name = "Should detect {1} indicator")
+        @CsvSource({
+                "'Java Developer - Remote', 'This is a remote position. Java required.', 'remote'",
+                "'Java Developer', 'We hire globally. Looking for Java expertise.', 'global'",
+                "'Java Developer', 'Worldwide candidates welcome. Java and microservices.', 'worldwide'"
+        })
+        void shouldDetectRemoteIndicators(String title, String description, String indicatorType) {
+            Job job = createJob(title, description);
             EligibilityResult result = rulesService.checkEligibility(job);
 
             assertThat(result.eligible()).isTrue();
@@ -180,30 +158,14 @@ class RulesServiceTest {
     @DisplayName("Contract indicator detection")
     class ContractIndicatorTests {
 
-        @Test
-        @DisplayName("Should detect contract indicator")
-        void shouldDetectContractIndicator() {
-            Job job = createJob("Java Developer - Contract", "This is a contract position. Java required.");
-            EligibilityResult result = rulesService.checkEligibility(job);
-
-            assertThat(result.eligible()).isTrue();
-            assertThat(result.isContract()).isTrue();
-        }
-
-        @Test
-        @DisplayName("Should detect B2B indicator")
-        void shouldDetectB2BIndicator() {
-            Job job = createJob("Java Developer", "B2B or employment available. Java and Spring Boot.");
-            EligibilityResult result = rulesService.checkEligibility(job);
-
-            assertThat(result.eligible()).isTrue();
-            assertThat(result.isContract()).isTrue();
-        }
-
-        @Test
-        @DisplayName("Should detect freelance indicator")
-        void shouldDetectFreelanceIndicator() {
-            Job job = createJob("Java Developer", "Freelance opportunity for Java developers.");
+        @ParameterizedTest(name = "Should detect {1} indicator")
+        @CsvSource({
+                "'Java Developer - Contract', 'This is a contract position. Java required.', 'contract'",
+                "'Java Developer', 'B2B or employment available. Java and Spring Boot.', 'B2B'",
+                "'Java Developer', 'Freelance opportunity for Java developers.', 'freelance'"
+        })
+        void shouldDetectContractIndicators(String title, String description, String indicatorType) {
+            Job job = createJob(title, description);
             EligibilityResult result = rulesService.checkEligibility(job);
 
             assertThat(result.eligible()).isTrue();

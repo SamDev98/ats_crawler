@@ -1,6 +1,7 @@
 package dev.jobscanner.service;
 
 import dev.jobscanner.config.ScoringConfig;
+import dev.jobscanner.config.UserProfile;
 import dev.jobscanner.model.Job;
 import dev.jobscanner.service.RulesService.EligibilityResult;
 import dev.jobscanner.service.ScoringService.ScoringResult;
@@ -8,8 +9,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +24,7 @@ class ScoringServiceTest {
 
     private ScoringService scoringService;
     private ScoringConfig scoringConfig;
+    private UserProfile userProfile;
 
     @BeforeEach
     void setUp() {
@@ -37,14 +43,18 @@ class ScoringServiceTest {
                 "kafka", 5,
                 "aws", 5,
                 "kubernetes", 5,
-                "docker", 3
-        ));
-        scoringService = new ScoringService(scoringConfig);
+                "docker", 3));
+
+        userProfile = new UserProfile();
+        userProfile.setScoring(new UserProfile.ScoringSettings());
+        userProfile.getScoring().setWeights(new HashMap<>());
+        userProfile.setTargetTechnologies(new ArrayList<>());
+
+        scoringService = new ScoringService(scoringConfig, userProfile);
     }
 
     private Job createJob(String title, String description, String location) {
         return Job.builder()
-                .id("test-123")
                 .title(title)
                 .description(description)
                 .url("https://example.com/job")
@@ -86,32 +96,14 @@ class ScoringServiceTest {
     @DisplayName("Seniority level scoring")
     class SeniorityLevelTests {
 
-        @Test
-        @DisplayName("Should add points for Senior in title")
-        void shouldAddPointsForSeniorInTitle() {
-            Job job = createJob("Senior Java Developer", "Building microservices.", "Remote");
-            EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
-
-            ScoringResult result = scoringService.calculateScore(job, eligibility);
-
-            assertThat(result.breakdown()).containsEntry("senior_level", 10);
-        }
-
-        @Test
-        @DisplayName("Should add points for Lead in title")
-        void shouldAddPointsForLeadInTitle() {
-            Job job = createJob("Lead Java Developer", "Leading the team.", "Remote");
-            EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
-
-            ScoringResult result = scoringService.calculateScore(job, eligibility);
-
-            assertThat(result.breakdown()).containsEntry("senior_level", 10);
-        }
-
-        @Test
-        @DisplayName("Should add points for Staff in title")
-        void shouldAddPointsForStaffInTitle() {
-            Job job = createJob("Staff Java Engineer", "Technical leadership.", "Remote");
+        @ParameterizedTest(name = "Should add points for {0} in title")
+        @CsvSource({
+                "Senior Java Developer",
+                "Lead Java Developer",
+                "Staff Java Engineer"
+        })
+        void shouldAddPointsForSeniorityInTitle(String title) {
+            Job job = createJob(title, "Building microservices.", "Remote");
             EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
 
             ScoringResult result = scoringService.calculateScore(job, eligibility);
@@ -189,32 +181,14 @@ class ScoringServiceTest {
     @DisplayName("LATAM/Brazil boost scoring")
     class LatamBrazilBoostTests {
 
-        @Test
-        @DisplayName("Should add points for Brazil location")
-        void shouldAddPointsForBrazilLocation() {
-            Job job = createJob("Java Developer", "Building microservices.", "Brazil");
-            EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
-
-            ScoringResult result = scoringService.calculateScore(job, eligibility);
-
-            assertThat(result.breakdown()).containsEntry("latam_brazil_boost", 10);
-        }
-
-        @Test
-        @DisplayName("Should add points for LATAM in description")
-        void shouldAddPointsForLatamInDescription() {
-            Job job = createJob("Java Developer", "We hire from LATAM region.", "Remote");
-            EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
-
-            ScoringResult result = scoringService.calculateScore(job, eligibility);
-
-            assertThat(result.breakdown()).containsEntry("latam_brazil_boost", 10);
-        }
-
-        @Test
-        @DisplayName("Should add points for São Paulo location")
-        void shouldAddPointsForSaoPauloLocation() {
-            Job job = createJob("Java Developer", "Building microservices.", "São Paulo");
+        @ParameterizedTest(name = "Should add points for {2}")
+        @CsvSource({
+                "'Java Developer', 'Building microservices.', 'Brazil', 'Brazil location'",
+                "'Java Developer', 'We hire from LATAM region.', 'Remote', 'LATAM in description'",
+                "'Java Developer', 'Building microservices.', 'São Paulo', 'São Paulo location'"
+        })
+        void shouldAddPointsForLatamBrazilBoost(String title, String description, String location, String indicator) {
+            Job job = createJob(title, description, location);
             EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
 
             ScoringResult result = scoringService.calculateScore(job, eligibility);
@@ -238,37 +212,19 @@ class ScoringServiceTest {
     @DisplayName("Tech stack scoring")
     class TechStackTests {
 
-        @Test
-        @DisplayName("Should add points for Spring")
-        void shouldAddPointsForSpring() {
-            Job job = createJob("Java Developer", "Experience with Spring Boot required.", "Remote");
+        @ParameterizedTest(name = "Should score tech stack with {1} points for: {0}")
+        @CsvSource({
+                "'Experience with Spring Boot required.', 5",
+                "'Spring, Kafka, AWS, Docker experience.', 18",
+                "'Spring, Kafka, AWS, Kubernetes, Docker experience.', 20"
+        })
+        void shouldScoreTechStack(String description, int expectedPoints) {
+            Job job = createJob("Java Developer", description, "Remote");
             EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
 
             ScoringResult result = scoringService.calculateScore(job, eligibility);
 
-            assertThat(result.breakdown()).containsEntry("tech_stack", 5);
-        }
-
-        @Test
-        @DisplayName("Should add points for multiple tech stack items")
-        void shouldAddPointsForMultipleTechStackItems() {
-            Job job = createJob("Java Developer", "Spring, Kafka, AWS, Docker experience.", "Remote");
-            EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
-
-            ScoringResult result = scoringService.calculateScore(job, eligibility);
-
-            assertThat(result.breakdown()).containsEntry("tech_stack", 18); // 5+5+5+3
-        }
-
-        @Test
-        @DisplayName("Should cap tech stack score at max")
-        void shouldCapTechStackScore() {
-            Job job = createJob("Java Developer", "Spring, Kafka, AWS, Kubernetes, Docker experience.", "Remote");
-            EligibilityResult eligibility = EligibilityResult.eligible(false, false, true);
-
-            ScoringResult result = scoringService.calculateScore(job, eligibility);
-
-            assertThat(result.breakdown()).containsEntry("tech_stack", 20); // Capped at max
+            assertThat(result.breakdown()).containsEntry("tech_stack", expectedPoints);
         }
     }
 
