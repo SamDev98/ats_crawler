@@ -14,14 +14,23 @@ import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 public abstract class AbstractJobSource implements JobSource {
 
     protected final WebClient webClient;
     protected final ScannerMetrics metrics;
+
+    // Track companies that need investigation (static to share across instances if
+    // needed, or per source)
+    protected final Set<String> deadCompanies = Collections.newSetFromMap(new ConcurrentHashMap<>());
+    protected final Set<String> emptyCompanies = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     protected AbstractJobSource(WebClient.Builder webClientBuilder, ScannerMetrics metrics) {
         HttpClient httpClient = HttpClient.create()
@@ -58,9 +67,15 @@ public abstract class AbstractJobSource implements JobSource {
                 .flatMap(company -> fetchCompanyJobs(company)
                         .retryWhen(Retry.backoff(2, Duration.ofSeconds(2))
                                 .filter(e -> e.getMessage() != null && e.getMessage().contains("429")))
+                        .doOnNext(jobs -> {
+                            if (jobs.isEmpty()) {
+                                emptyCompanies.add(company);
+                            }
+                        })
                         .doOnError(e -> {
                             // Avoid log noise for 404s (companies that likely moved ATS)
                             if (e.getMessage() != null && e.getMessage().contains("404")) {
+                                deadCompanies.add(company);
                                 log.debug("{} - {} likely moved or changed ATS: {}", getName(), company,
                                         e.getMessage());
                             } else {
@@ -70,7 +85,14 @@ public abstract class AbstractJobSource implements JobSource {
                         })
                         .onErrorResume(e -> Mono.just(List.of()))
                         .flatMapMany(Flux::fromIterable), 3) // Reduce concurrency to 3
+                .doOnTerminate(() -> logCleanupReport())
                 .doOnNext(job -> metrics.incrementJobsDiscovered(getName()));
+    }
+
+    private void logCleanupReport() {
+        if (!deadCompanies.isEmpty()) {
+            log.info("--- CLEANUP RECOMMENDATION (DEAD) for {}: {} ---", getName(), String.join(", ", deadCompanies));
+        }
     }
 
     /**

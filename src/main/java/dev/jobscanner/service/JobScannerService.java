@@ -84,7 +84,9 @@ public class JobScannerService {
                             scoringService.getThreshold(), qualifiedJobs.size());
 
                     if (qualifiedJobs.isEmpty()) {
-                        log.info("No qualifying jobs found today");
+                        log.info(SEPARATOR);
+                        log.info("SCAN SUMMARY: No qualifying jobs found today");
+                        log.info(SEPARATOR);
                         metrics.updateLastRunStats(allJobs.size(), 0, 0);
                         return Mono.just(List.<Job>of());
                     }
@@ -117,9 +119,16 @@ public class JobScannerService {
      * @return The job with score/eligibility set, or null if not eligible
      */
     private Job processJob(Job job) {
-        // Ensure URL is clean
+        // Ensure URL is clean and safe for email clients
         if (job.getUrl() != null) {
-            job.setUrl(job.getUrl().trim());
+            String cleanUrl = String.valueOf(job.getUrl()).trim()
+                    .replaceAll("\\s+", "") // Remove any white space
+                    .replaceAll("[\\u200B-\\u200D\\uFEFF]", ""); // Remove zero-width spaces
+
+            if (!cleanUrl.startsWith("http") && !cleanUrl.isBlank()) {
+                cleanUrl = "https://" + cleanUrl;
+            }
+            job.setUrl(cleanUrl);
         }
 
         // Check eligibility

@@ -65,9 +65,10 @@ public class SmartRecruitersSource extends AbstractJobSource {
             }
         }
 
-        String url = srJob.getRef() != null
-                ? srJob.getRef()
-                : "https://jobs.smartrecruiters.com/" + company + "/" + srJob.getId();
+        String url = srJob.getPostingUrl();
+        if (url == null || url.isBlank()) {
+            url = "https://jobs.smartrecruiters.com/" + company + "/" + srJob.getId();
+        }
 
         return baseJob()
                 .title(srJob.getName())
@@ -90,7 +91,9 @@ public class SmartRecruitersSource extends AbstractJobSource {
         if (sections.getQualifications() != null && sections.getQualifications().getText() != null) {
             sb.append(" ").append(stripHtml(sections.getQualifications().getText()));
         }
-        return sb.toString().trim();
+        String description = sb.toString().trim();
+        // Fallback for SmartRecruiters if description is empty, use name
+        return description.isEmpty() ? "No description provided" : description;
     }
 
     @Data
@@ -105,6 +108,7 @@ public class SmartRecruitersSource extends AbstractJobSource {
         private String id;
         private String name;
         private String ref;
+        private String postingUrl;
         private SmartRecruitersCompany company;
         private SmartRecruitersLocation location;
         private SmartRecruitersJobAd jobAd;
