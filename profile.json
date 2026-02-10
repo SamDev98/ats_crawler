@@ -1,0 +1,47 @@
+{
+  "name": "Developer Profile",
+  "target_technologies": [
+    "java",
+    "spring boot",
+    "kotlin",
+    "quarkus",
+    "micronaut"
+  ],
+  "experience_level": "Senior",
+  "seniority_terms": [
+    "senior",
+    "lead",
+    "staff",
+    "principal",
+    "sr."
+  ],
+  "locations": [
+    "Brazil",
+    "LATAM",
+    "Remote Global"
+  ],
+  "scoring": {
+    "threshold": 70,
+    "weights": {
+      "java_in_title": 20,
+      "senior_level": 15,
+      "remote_explicit": 20,
+      "no_us_only": 20,
+      "contract_b2b": 15,
+      "latam_brazil_boost": 10,
+      "tech_stack_max": 20
+    }
+  },
+  "tech_stack_weights": {
+    "spring boot": 10,
+    "quarkus": 10,
+    "kotlin": 5,
+    "aws": 5,
+    "kubernetes": 5,
+    "docker": 5,
+    "microservices": 5,
+    "postgresql": 5,
+    "kafka": 5,
+    "redis": 5
+  }
+}
