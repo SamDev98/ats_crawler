@@ -22,7 +22,6 @@ class NoOpJobEnhancerTest {
 
     private Job createJob(String title) {
         return Job.builder()
-                .id("test-123")
                 .title(title)
                 .description("Test description")
                 .url("https://example.com/job")
@@ -54,8 +53,7 @@ class NoOpJobEnhancerTest {
     void shouldReturnSameListFromEnhanceAll() {
         List<Job> jobs = List.of(
                 createJob("Java Developer 1"),
-                createJob("Java Developer 2")
-        );
+                createJob("Java Developer 2"));
 
         StepVerifier.create(enhancer.enhanceAll(jobs))
                 .assertNext(result -> assertThat(result).isSameAs(jobs))

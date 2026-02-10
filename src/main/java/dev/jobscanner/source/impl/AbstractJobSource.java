@@ -92,6 +92,9 @@ public abstract class AbstractJobSource implements JobSource {
         if (!deadCompanies.isEmpty()) {
             log.info("--- CLEANUP RECOMMENDATION (DEAD) for {}: {} ---", getName(), String.join(", ", deadCompanies));
         }
+        if (!emptyCompanies.isEmpty()) {
+            log.info("--- EMPTY COMPANIES for {} (0 jobs): {} ---", getName(), String.join(", ", emptyCompanies));
+        }
     }
 
     /**

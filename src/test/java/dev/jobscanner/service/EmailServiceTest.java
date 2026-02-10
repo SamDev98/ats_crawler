@@ -46,7 +46,6 @@ class EmailServiceTest {
 
         private Job createJob(String title, int score, boolean remote, boolean contract) {
                 return Job.builder()
-                                .id("test-123")
                                 .title(title)
                                 .description("Test description")
                                 .url("https://example.com/job")

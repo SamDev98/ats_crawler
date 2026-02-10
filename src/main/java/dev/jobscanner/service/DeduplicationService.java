@@ -64,7 +64,7 @@ public class DeduplicationService {
         if (jobs == null || jobs.isEmpty()) {
             return;
         }
-        
+
         LocalDateTime now = LocalDateTime.now();
 
         List<SentJob> sentJobs = jobs.stream()
@@ -83,46 +83,5 @@ public class DeduplicationService {
             sentJobRepository.saveAll(sentJobs);
             log.info("Marked {} jobs as sent", sentJobs.size());
         }
-    }
-
-    /**
-     * Check if a specific job URL has been sent.
-     *
-     * @param url The job URL to check
-     * @return true if already sent
-     */
-    public boolean isAlreadySent(String url) {
-        return sentJobRepository.existsByUrl(url);
-    }
-
-    /**
-     * Get count of jobs sent today.
-     *
-     * @return Number of jobs sent today
-     */
-    public long getJobsSentToday() {
-        LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
-        return sentJobRepository.countSentToday(startOfDay);
-    }
-
-    /**
-     * Get total count of all sent jobs.
-     *
-     * @return Total number of sent jobs
-     */
-    public long getTotalSentJobs() {
-        return sentJobRepository.count();
-    }
-
-    /**
-     * Clean up old records (older than specified days).
-     *
-     * @param daysToKeep Number of days to keep records
-     */
-    @Transactional
-    public void cleanupOldRecords(int daysToKeep) {
-        LocalDateTime cutoffDate = LocalDateTime.now().minusDays(daysToKeep);
-        sentJobRepository.deleteBySentAtBefore(cutoffDate);
-        log.info("Cleaned up sent job records older than {} days", daysToKeep);
     }
 }

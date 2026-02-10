@@ -68,7 +68,6 @@ class JobScannerServiceTest {
 
         private Job createJob(String id, String title) {
                 return Job.builder()
-                                .id(id)
                                 .title(title)
                                 .description("Test description with Java and Spring Boot")
                                 .url("https://example.com/job/" + id)

@@ -8,7 +8,6 @@ import java.util.Map;
 @Data
 @Builder
 public class Job {
-    private String id;
     private String title;
     private String url;
     private String company;
@@ -16,31 +15,17 @@ public class Job {
     private String description;
     private String source; // ATS name (Lever, Greenhouse, etc.)
 
-    // Eligibility flags
-    private boolean eligible;
+    // Eligibility flags (set by pipeline after RulesService check)
     private boolean remote;
     private boolean contract;
-    private String blockReason;
 
     // Scoring
     private int score;
     private Map<String, Integer> scoreBreakdown;
 
-    // AI enhancements (optional, populated by JobEnhancer)
-    private String aiAnalysis;        // Full AI analysis text
-    private String summary;
-    private String normalizedLocation;
-    private String aiTechnologies;
-    private String aiLevel;
-    private String aiRemoteStatus;
-    private String aiContractType;
-    private String aiRedFlags;
-    private int aiMatchScore;
+    // AI enhancement (optional, populated by JobEnhancer)
+    private String aiAnalysis;
 
     // Metadata
     private Instant discoveredAt;
-
-    public String getUrlHash() {
-        return String.valueOf(url.hashCode());
-    }
 }

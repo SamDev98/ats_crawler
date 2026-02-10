@@ -76,15 +76,6 @@ class ScannerMetricsTest {
     class APICountersTests {
 
         @Test
-        @DisplayName("Should record API call")
-        void shouldRecordApiCall() {
-            metrics.recordApiCall("Lever");
-
-            double totalCalls = meterRegistry.counter("job_scanner_api_calls_total").count();
-            assertThat(totalCalls).isEqualTo(1.0);
-        }
-
-        @Test
         @DisplayName("Should record API error")
         void shouldRecordApiError() {
             metrics.recordApiError("Lever");

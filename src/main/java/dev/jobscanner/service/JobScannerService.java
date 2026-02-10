@@ -38,9 +38,6 @@ public class JobScannerService {
     @Value("${scanner.dry-run:false}")
     private boolean dryRun;
 
-    @Value("${app.ai.max-jobs:20}")
-    private int maxAiJobs;
-
     /**
      * Execute the full job scanning pipeline.
      *
@@ -172,12 +169,14 @@ public class JobScannerService {
         return jobEnhancer.enhanceAll(jobs)
                 .map(enhancedJobs -> enhancedJobs.stream()
                         .filter(job -> {
-                            if (job.getAiAnalysis() == null) return true;
+                            if (job.getAiAnalysis() == null)
+                                return true;
                             String analysis = job.getAiAnalysis();
-                            // Aggressive filtering: Remove if explicitly told to discard or if relevance is too low
-                            boolean shouldRemove = analysis.contains("REMOVE_JOB_IA_FILTER") 
-                                || analysis.contains("Veredito: DESCARTAR")
-                                || analysis.contains("Veredito: POUCO RELEVANTE");
+                            // Aggressive filtering: Remove if explicitly told to discard or if relevance is
+                            // too low
+                            boolean shouldRemove = analysis.contains("REMOVE_JOB_IA_FILTER")
+                                    || analysis.contains("Veredito: DESCARTAR")
+                                    || analysis.contains("Veredito: POUCO RELEVANTE");
                             return !shouldRemove;
                         })
                         .toList())

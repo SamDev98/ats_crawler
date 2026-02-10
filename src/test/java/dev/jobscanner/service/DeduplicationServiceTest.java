@@ -14,7 +14,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -40,7 +39,6 @@ class DeduplicationServiceTest {
 
     private Job createJob(String url, String title) {
         return Job.builder()
-                .id("test-" + url.hashCode())
                 .title(title)
                 .description("Test description")
                 .url(url)
@@ -153,69 +151,6 @@ class DeduplicationServiceTest {
                     .containsExactly("https://example.com/job1", "Senior Java Developer", "Acme Corp", "Lever", 85,
                             "Remote - Brazil");
             assertThat(savedJob.getSentAt()).isNotNull();
-        }
-    }
-
-    @Nested
-    @DisplayName("Check already sent")
-    class CheckAlreadySentTests {
-
-        @Test
-        @DisplayName("Should return true when URL exists")
-        void shouldReturnTrueWhenUrlExists() {
-            when(sentJobRepository.existsByUrl("https://example.com/job1")).thenReturn(true);
-
-            boolean result = deduplicationService.isAlreadySent("https://example.com/job1");
-
-            assertThat(result).isTrue();
-        }
-
-        @Test
-        @DisplayName("Should return false when URL does not exist")
-        void shouldReturnFalseWhenUrlDoesNotExist() {
-            when(sentJobRepository.existsByUrl("https://example.com/job1")).thenReturn(false);
-
-            boolean result = deduplicationService.isAlreadySent("https://example.com/job1");
-
-            assertThat(result).isFalse();
-        }
-    }
-
-    @Nested
-    @DisplayName("Statistics")
-    class StatisticsTests {
-
-        @Test
-        @DisplayName("Should return jobs sent today count")
-        void shouldReturnJobsSentTodayCount() {
-            when(sentJobRepository.countSentToday(any())).thenReturn(15L);
-
-            long result = deduplicationService.getJobsSentToday();
-
-            assertThat(result).isEqualTo(15);
-        }
-
-        @Test
-        @DisplayName("Should return total sent jobs count")
-        void shouldReturnTotalSentJobsCount() {
-            when(sentJobRepository.count()).thenReturn(100L);
-
-            long result = deduplicationService.getTotalSentJobs();
-
-            assertThat(result).isEqualTo(100);
-        }
-    }
-
-    @Nested
-    @DisplayName("Cleanup")
-    class CleanupTests {
-
-        @Test
-        @DisplayName("Should delete old records")
-        void shouldDeleteOldRecords() {
-            deduplicationService.cleanupOldRecords(30);
-
-            verify(sentJobRepository).deleteBySentAtBefore(any(LocalDateTime.class));
         }
     }
 }
