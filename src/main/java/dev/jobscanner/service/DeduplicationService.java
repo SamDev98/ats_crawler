@@ -37,8 +37,9 @@ public class DeduplicationService {
         Set<String> urls = jobs.stream()
                 .map(Job::getUrl)
                 .collect(Collectors.toSet());
-
-        Set<String> existingUrls = sentJobRepository.findExistingUrls(urls);
+        
+        LocalDateTime since = LocalDateTime.now().minusDays(14);
+        Set<String> existingUrls = sentJobRepository.findExistingUrls(urls, since);
         if (existingUrls == null) {
             existingUrls = Set.of();
         }
