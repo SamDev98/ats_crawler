@@ -16,6 +16,7 @@ public interface SentJobRepository extends JpaRepository<SentJob, Long> {
     /**
      * Find URLs from a list that have already been sent.
      */
-    @Query("SELECT s.url FROM SentJob s WHERE s.url IN :urls")
-    Set<String> findExistingUrls(Set<String> urls);
+    
+    @Query("SELECT s.url FROM SentJob s WHERE s.url IN :urls AND s.sentAt > :since")
+    Set<String> findExistingUrls(Set<String> urls, LocalDateTime since);
 }
