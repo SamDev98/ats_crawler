@@ -1,5 +1,9 @@
 name: Daily Job Scanner
 
+permissions:
+  contents: write
+  actions: read
+
 on:
   schedule:
     # Run daily at 8:00 UTC (5:00 BRT)
@@ -13,6 +17,16 @@ on:
         type: boolean
       reset_db:
         description: 'Limpar banco de dados (enviar todas as vagas novamente)'
+        required: false
+        default: false
+        type: boolean
+      ai_model:
+        description: 'Model to use (e.g. google/gemini-2.0-flash-001, deepseek/deepseek-chat)'
+        required: false
+        default: 'deepseek/deepseek-chat'
+        type: string
+      build_docker:
+        description: 'Build and Push Docker image'
         required: false
         default: false
         type: boolean
@@ -43,7 +57,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh run download --name jobs-database --dir data || echo "No previous database found"
+          gh run download --name jobs-database --dir data --repo ${{ github.repository }} || echo "No previous database found"
         continue-on-error: true
 
       - name: Run job scanner
@@ -52,12 +66,21 @@ jobs:
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           EMAIL_TO: ${{ secrets.EMAIL_TO }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           AI_ENABLED: 'true'
-          AI_PROVIDER: 'openrouter' # Default to openrouter for DeepSeek
+          AI_PROVIDER: 'openrouter'
+          OPENROUTER_MODEL: ${{ github.event.inputs.ai_model || 'deepseek/deepseek-chat' }}
           DRY_RUN: ${{ github.event.inputs.dry_run || 'false' }}
           SQLITE_PATH: ./data/jobs.db
         run: |
-          java -jar target/*.jar | tee output.log
+          # Finds the FAT JAR only (ignoring .original)
+          JAR_FILE=$(find target -maxdepth 1 -name "*.jar" ! -name "*.original" | head -n 1)
+          if [ -z "$JAR_FILE" ]; then
+            echo "❌ JAR file not found in target/"
+            exit 1
+          fi
+          echo "🚀 Executing $JAR_FILE"
+          java -jar "$JAR_FILE" | tee output.log
 
       - name: Generate Job Summary
         if: always()
