@@ -60,7 +60,7 @@ class DeduplicationServiceTest {
             List<Job> jobs = List.of(
                     createJob("https://example.com/job1", "Java Developer 1"),
                     createJob("https://example.com/job2", "Java Developer 2"));
-            when(sentJobRepository.findExistingUrls(any())).thenReturn(Set.of());
+            when(sentJobRepository.findExistingUrls(any(), any())).thenReturn(Set.of());
 
             List<Job> result = deduplicationService.filterNewJobs(jobs);
 
@@ -76,7 +76,7 @@ class DeduplicationServiceTest {
                     createJob("https://example.com/job1", "Java Developer 1"),
                     createJob("https://example.com/job2", "Java Developer 2"),
                     createJob("https://example.com/job3", "Java Developer 3"));
-            when(sentJobRepository.findExistingUrls(any()))
+            when(sentJobRepository.findExistingUrls(any(), any()))
                     .thenReturn(Set.of("https://example.com/job1", "https://example.com/job3"));
 
             List<Job> result = deduplicationService.filterNewJobs(jobs);
@@ -93,7 +93,7 @@ class DeduplicationServiceTest {
             List<Job> jobs = List.of(
                     createJob("https://example.com/job1", "Java Developer 1"),
                     createJob("https://example.com/job2", "Java Developer 2"));
-            when(sentJobRepository.findExistingUrls(any()))
+            when(sentJobRepository.findExistingUrls(any(), any()))
                     .thenReturn(Set.of("https://example.com/job1", "https://example.com/job2"));
 
             List<Job> result = deduplicationService.filterNewJobs(jobs);
@@ -107,7 +107,7 @@ class DeduplicationServiceTest {
             List<Job> result = deduplicationService.filterNewJobs(List.of());
 
             assertThat(result).isEmpty();
-            verify(sentJobRepository, never()).findExistingUrls(any());
+            verify(sentJobRepository, never()).findExistingUrls(any(), any());
         }
     }
 
